@@ -3,7 +3,7 @@ name: Test Deploy
 on:
   push:
     paths:
-      - ".github/workflows/deploy.yml"
+      - ".github/workflows/saml-deploy.yml"
 
 jobs:
   saml-deploy:
