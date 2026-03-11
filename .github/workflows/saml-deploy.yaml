@@ -1,8 +1,9 @@
 name: Test Deploy
 
-push:
-  paths:
-    - ".github/workflows/deploy.yml"
+on:
+  push:
+    paths:
+      - ".github/workflows/deploy.yml"
 
 jobs:
   saml-deploy:
