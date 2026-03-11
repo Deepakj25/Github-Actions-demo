@@ -1,0 +1,14 @@
+name: Test Deploy
+
+on:
+  push: {}
+
+jobs:
+  saml-deploy:
+    name: Simple shell job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run simple Linux commands
+        run: |
+          echo "hello you have successfully created a workflow file"
+        shell: bash
