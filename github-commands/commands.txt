@@ -9,3 +9,9 @@
 
 #log
 git log --oneline : check commit histry in short and simple
+
+#tracking and commit
+git commit -am "use this to commit already tracked files"
+
+#this includes new files as well.
+git add . && git commit -m "message"  
