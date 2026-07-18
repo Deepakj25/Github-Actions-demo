@@ -1,4 +1,4 @@
-# these commands will be useful for tracking local and remote branches
+# these commands will be useful for tracking local and remote branches 
 1. git branch -a (to check local + remote branches)
 2. git branch -r : all remote bracnhes
 3. git branch -v : check which remote branch is connected
