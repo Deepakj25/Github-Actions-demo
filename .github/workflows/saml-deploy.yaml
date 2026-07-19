@@ -6,13 +6,20 @@ on:
       - main
       - 'users/deepak/**'
 
+env:
+  SAMPLE_ENV_VAR: "This is a sample environment variable" #Workflow level environment variable
+
 jobs:
   build:
     name: Run basic CI steps
+    env:
+      JOB_ENV_VAR: "This is a job-specific environment variable" #Job level environment variable
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
+        env:
+          CHECKOUT_ENV_VAR: "This is a step-specific environment variable" #Step level environment variable
         uses: actions/checkout@v4
 
       - name: Show current directory
@@ -20,6 +27,12 @@ jobs:
 
       - name: List files in repo
         run: ls -la
+
+      - name: Show environment variables
+        run: |
+          echo "Workflow level env var: $SAMPLE_ENV_VAR" #Workflow level environment variable
+          echo "Job level env var: $JOB_ENV_VAR" #Job level environment variable
+          echo "Step level env var: $CHECKOUT_ENV_VAR" #Step level environment variable
 
       - name: Print a message
         run: echo "GitHub Actions workflow executed successfully!"
