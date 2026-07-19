@@ -1,0 +1,30 @@
+name: Variables Example
+
+on:
+  workflow_dispatch:
+
+# Workflow variable
+# Available in ALL jobs
+env:
+  WORKFLOW_VAR: "workflow"
+
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+
+    # Job variable
+    # Available in ALL steps of job1
+    env:
+      JOB_VAR: "job"
+
+    steps:
+      - name: Print variables
+        # Step variable
+        # Available ONLY in this step
+        env:
+          STEP_VAR: "step"
+
+        run: |
+          echo "Workflow: $WORKFLOW_VAR"
+          echo "Job: $JOB_VAR"
+          echo "Step: $STEP_VAR"
