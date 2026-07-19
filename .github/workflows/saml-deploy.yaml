@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - 'users/deepak/**'
+    paths:
+      - '.github/workflows/saml-deploy.yaml'
 
 env:
   SAMPLE_ENV_VAR: "This is a sample environment variable" #Workflow level environment variable
@@ -18,8 +20,6 @@ jobs:
 
     steps:
       - name: Checkout repository
-        env:
-          CHECKOUT_ENV_VAR: "This is a step-specific environment variable" #Step level environment variable
         uses: actions/checkout@v4
 
       - name: Show current directory
@@ -29,6 +29,8 @@ jobs:
         run: ls -la
 
       - name: Show environment variables
+        env:
+          CHECKOUT_ENV_VAR: "This is a step-specific environment variable" #Step level environment variable
         run: |
           echo "Workflow level env var: $SAMPLE_ENV_VAR" #Workflow level environment variable
           echo "Job level env var: $JOB_ENV_VAR" #Job level environment variable
