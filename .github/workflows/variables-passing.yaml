@@ -1,0 +1,76 @@
+name: Variable Passing Example
+
+on:
+  workflow_dispatch:
+
+# 1. WORKFLOW LEVEL
+# Available in all jobs
+env:
+  APP_NAME: "my-app"
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    # 2. JOB LEVEL
+    # Available in all steps of this job
+    env:
+      ENVIRONMENT: "dev"
+
+    # 4. Expose a step output as a job output
+    # This allows another job to use it
+    outputs:
+      version: ${{ steps.create_version.outputs.version }}
+
+    steps:
+
+      # Workflow + Job variables
+      - name: Print variables
+        run: |
+          echo "App: $APP_NAME"
+          echo "Environment: $ENVIRONMENT"
+
+
+      # 3. STEP LEVEL
+      # Only available in this step
+      - name: Step variable example
+        env:
+          MESSAGE: "Building application"
+        run: |
+          echo "$MESSAGE"
+
+
+      # 4. STEP → NEXT STEP
+      # GITHUB_ENV makes the variable available
+      # to later steps in the SAME job
+      - name: Create dynamic variable
+        run: |
+          echo "BUILD_NUMBER=123" >> "$GITHUB_ENV"
+
+      - name: Use dynamic variable
+        run: |
+          echo "Build number: $BUILD_NUMBER"
+
+
+      # 5. JOB → ANOTHER JOB
+      # GITHUB_OUTPUT creates a step output
+      - name: Create version
+        id: create_version
+        run: |
+          echo "version=1.0.0" >> "$GITHUB_OUTPUT"
+
+
+  deploy:
+
+    # Required to access build job's output
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Deploy application
+        run: |
+          echo "App: $APP_NAME"
+          echo "Version: ${{ needs.build.outputs.version }}"
