@@ -1,0 +1,85 @@
+name: Artifact Path Example
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Show workspace before creating artifact
+      - name: Show workspace before creating file
+        run: |
+          echo "Current directory:"
+          pwd
+
+          echo "GITHUB_WORKSPACE:"
+          echo "$GITHUB_WORKSPACE"
+
+          echo "Files:"
+          ls -la
+
+      # Create file
+      - name: Create artifact file
+        run: |
+          echo "Hello from Build Job" > output.txt
+
+      # Show workspace after creating file
+      - name: Show workspace before uploading artifact
+        run: |
+          echo "Current directory:"
+          pwd
+
+          echo "Files:"
+          ls -la
+
+      # Upload artifact
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-artifact
+          path: output.txt
+
+      # Show workspace after uploading
+      - name: Show workspace after uploading artifact
+        run: |
+          echo "Current directory:"
+          pwd
+
+          echo "Files:"
+          ls -la
+
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # Show workspace before downloading
+      - name: Show workspace before download
+        run: |
+          echo "Current directory:"
+          pwd
+
+          echo "Files:"
+          ls -la
+
+      # Download artifact
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: my-artifact
+
+      # Show workspace after downloading
+      - name: Show workspace after download
+        run: |
+          echo "Current directory:"
+          pwd
+
+          echo "Files:"
+          ls -la
+
+      # Read downloaded file
+      - name: Read artifact
+        run: cat output.txt
