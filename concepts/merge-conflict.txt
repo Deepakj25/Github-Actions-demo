@@ -1,0 +1,51 @@
+What is a Merge Conflict?
+
+A merge conflict occurs when Git cannot automatically combine changes from two branches, commonly because the same or overlapping lines were changed differently.
+git switch main
+git merge feature
+
+Conflict Markers
+<<<<<<< HEAD
+Change from main
+=======
+Change from feature
+>>>>>>> feature
+HEAD / Current Change → Current branch (main)
+Incoming Change → Branch being merged (feature)
+
+Resolving a Conflict
+Manually choose or combine the required changes, then:
+
+git add <file>
+git commit
+git add → Marks the conflict as resolved and stages the final file.
+git commit → Completes the merge operation.
+
+Abort a Merge
+To cancel an ongoing merge:
+git merge --abort
+
+MERGE_HEAD exists
+This means a merge operation is still in progress. It does not necessarily mean there are unresolved conflicts.
+
+You must either complete the merge:
+git add .
+git commit
+
+or abort it:
+git merge --abort
+
+Key Flow
+git merge feature
+      ↓
+Conflict occurs
+      ↓
+Resolve conflict
+      ↓
+git add
+      ↓
+git commit
+      ↓
+Merge completed
+
+Key point: Two branches modifying the same file does not always cause a conflict. A conflict usually occurs when Git cannot automatically reconcile changes to the same or overlapping content.

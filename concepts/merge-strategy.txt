@@ -1,0 +1,42 @@
+GitHub PR Merge Strategies — Notes
+
+Suppose:
+
+main
+  │
+A ── B
+     \
+      C ── D ── E  ← feature
+
+1. Merge Commit
+Keeps all feature commits and creates an additional merge commit.
+
+A ── B ─────────── M  ← main
+     \            /
+      C ── D ── E
+
+Individual commits preserved
+Extra merge commit created
+Non-linear history
+
+2. Squash and Merge
+Combines all feature commits into one commit.
+
+A ── B ── S  ← main
+S = combined changes of C + D + E
+
+Individual feature commits not preserved on main
+No extra merge commit
+Clean, linear history
+
+3. Rebase and Merge
+Keeps individual commits but places them in a linear history.
+
+A ── B ── C' ── D' ── E'  ← main
+
+Individual commits preserved
+No extra merge commit
+Linear history
+
+
+Remember: Merge → preserve branch history. Squash → PR becomes one commit. Rebase → keep individual commits with linear history.

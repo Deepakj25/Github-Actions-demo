@@ -1,0 +1,62 @@
+##git merge is used to combine changes/history from one branch into another.
+Always switch to the destination branch first.
+git switch main
+git merge feature
+
+This means: Merge feature into main.
+
+##Fast-Forward Merge
+Happens when the destination branch has no new commits after the feature branch was created.
+Git simply moves the destination branch pointer forward.
+No merge commit is created.
+
+Before:
+
+A ── B ── C
+     ↑    ↑
+   main  feature
+
+After:
+
+A ── B ── C
+          ↑
+      main, feature
+
+
+
+##Three-Way Merge
+Happens when both branches have diverged and contain their own commits.
+Git uses three points:
+Common ancestor
+Latest commit of current/destination branch
+Latest commit of branch being merged
+Git combines the changes.
+A merge commit is normally created.
+       C ───── M  ← main
+      /       /
+A ── B       /
+      \     /
+       D ── E  ← feature
+
+
+## Merge Conflicts
+A merge conflict can occur when Git cannot automatically combine changes.
+Common example: both branches modify the same part of the same file differently.
+The conflict must be manually resolved before completing the merge.
+
+##Usefull commands
+
+# Create and switch to new branch
+git switch -c feature
+
+# Switch to existing branch
+git switch feature
+
+# Merge feature into current branch
+git merge feature
+
+# View commit history
+git log --oneline
+
+# View branch history graph
+git log --oneline --graph --all

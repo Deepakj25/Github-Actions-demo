@@ -1,0 +1,81 @@
+Git Rebase — Notes
+What is Rebase?
+Rebase is used to move/replay your branch commits on top of another branch's latest commit.
+It is commonly used when your feature branch is behind main and you want to update it while maintaining a linear Git history.
+
+Example:
+
+git switch feature
+git rebase main
+
+Meaning:
+
+Take my feature commits and replay them on top of the latest main.
+
+Before Rebase
+
+Both branches have their own commits:
+
+          C ── D  ← main
+         /
+A ── B
+         \
+          E ── F  ← feature
+After Rebase
+A ── B ── C ── D ── E' ── F'
+              ↑             ↑
+             main         feature
+
+Feature commits E and F are recreated as E' and F'.
+
+Because these are new commits, they receive new commit hashes.
+
+Therefore:
+
+Rebase rewrites commit history.
+
+Merge vs Rebase
+
+Starting situation:
+
+          C ── D  ← main
+         /
+A ── B
+         \
+          E ── F  ← feature
+Using Merge
+git switch feature
+git merge main
+
+Result:
+
+          C ── D
+         /     \
+A ── B          M  ← feature
+         \     /
+          E ── F
+Original history is preserved.
+A merge commit may be created.
+Commit hashes don't change.
+History can become non-linear.
+Using Rebase
+git switch feature
+git rebase main
+
+Result:
+
+A ── B ── C ── D ── E' ── F'
+              ↑             ↑
+             main         feature
+Feature commits are replayed on top of main.
+No synchronization merge commit is needed.
+History becomes linear.
+Feature commit hashes change because commits are recreated.
+
+Key Point to Remember
+
+Merge: "Bring main into my feature and preserve how the branches developed."
+
+Rebase: "Take my feature work and replay it as if I had started from the latest main."
+
+Rebase is not mandatory and is not automatically better than merge. Teams choose between merge and rebase based on their Git branching and history strategy.

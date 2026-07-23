@@ -9,6 +9,7 @@
 
 #log
 git log --oneline : check commit histry in short and simple
+git log --oneline --graph --all
 
 #tracking and commit
 git commit -am "use this to commit already tracked files"
