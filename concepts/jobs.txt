@@ -1,0 +1,38 @@
+Job is the smallest independent schedulable unit in a GitHub Actions workflow. It consists of one or more sequential steps and executes on its own runner.
+
+Workflow
+   │
+   ├── Job
+   │     ├── Step
+   │     ├── Step
+   │     └── Step
+   │
+   └── Job
+         ├── Step
+         └── Step
+
+Workflow → contains Jobs
+Job → contains Steps
+Step → executes an Action (uses) or Script (run)
+
+Execution Behavior
+Parallel (Default)
+
+Sequential
+Use needs to create dependencies.
+
+test:
+  needs: build
+
+Multiple Dependencies
+  deploy:
+  needs:
+    - build
+    - test
+
+Key Takeaway
+Jobs are parallel by default.
+Steps are always sequential.
+Every job gets a fresh runner.
+Steps in the same job share the same runner and workspace.
+needs is what creates dependencies between jobs.

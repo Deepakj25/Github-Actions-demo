@@ -1,0 +1,61 @@
+An event isn't just its name.
+
+It also carries information.
+{
+  "event": "push",
+  "repository": "my-app",
+  "branch": "feature/login",
+  "commit": "abc123"
+}
+
+For example, a push event contains data like:
+
+Repository
+Branch
+Commit SHA
+Commit message
+Author
+Timestamp
+
+Later, when we learn Contexts, you'll access this information using:
+
+${{ github.event }}
+
+For now, just remember:
+
+Every event has metadata associated with it.
+
+
+Architecture
+Developer
+    │
+git push
+    │
+    ▼
+GitHub receives event
+    │
+    ▼
+Generate Event Payload
+    │
+    ▼
+GitHub Actions Engine
+    │
+    ▼
+Discover Workflows
+(.github/workflows/)
+    │
+    ▼
+Evaluate Triggers & Filters
+(branches, paths, tags, etc.)
+    │
+    ▼
+Create Workflow Run
+    │
+    ▼
+Execution Queue
+    │
+    ▼
+Allocate Runner
+    │
+    ▼
+Execute Jobs & Steps

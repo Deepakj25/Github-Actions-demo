@@ -1,0 +1,116 @@
+GitHub Actions
+
+Definition
+
+Built-in GitHub automation platform.
+Executes workflows in response to events.
+Primarily used for CI/CD.
+
+Execution Flow
+
+Event
+   ↓
+Workflow
+   ↓
+Job
+   ↓
+Runner
+   ↓
+Steps
+   ↓
+Runner Deleted
+
+
+Key Points
+
+Workflow starts when an event occurs.
+Jobs execute on runners (VMs).
+GitHub-hosted runners are ephemeral.
+After the job completes, the runner is deleted.
+
+
+GitHub Actions – Why GitHub Actions?
+
+Before GitHub Actions
+GitHub was mainly used for:
+
+Source code
+Branches
+Pull Requests
+Code Reviews
+
+For CI/CD, a separate tool was required:
+
+Jenkins
+Azure DevOps Pipelines
+GitLab CI/CD
+CircleCI
+Developer
+    │
+    ▼
+GitHub
+    │
+    ▼
+External CI/CD Tool
+    │
+    ▼
+Build → Test → Deploy
+
+Problems
+Two different platforms to manage
+Separate authentication & permissions
+More maintenance
+Context switching
+Additional infrastructure (e.g., Jenkins servers)
+
+GitHub's Solution
+GitHub introduced GitHub Actions—a built-in automation platform integrated with GitHub.
+
+Developer
+    │
+    ▼
+GitHub
+├── Repository
+├── Pull Requests
+├── Issues
+└── Actions
+        │
+        ▼
+Build → Test → Deploy
+
+Advantages
+
+Native GitHub integration
+Workflows stored as YAML (Infrastructure as Code)
+Version controlled with Git
+Event-driven automation
+Large GitHub Marketplace
+GitHub-hosted runners available
+
+Common Events
+push
+pull_request
+workflow_dispatch
+schedule
+release
+tag
+
+Key Takeaway
+GitHub Actions brings CI/CD and automation directly into GitHub, eliminating the need for a separate CI/CD platform in many 
+scenarios while keeping workflows version-controlled alongside the application code.
+
+Repository contains one or more workflows.
+Workflow contains one or more jobs.
+Job runs on a single runner.
+Runner executes the job.
+Job contains one or more steps.
+Step executes either a shell command (run) or a reusable action (uses).
+
+Workflow File Location
+
+Workflows must be stored in:
+.github/workflows/
+GitHub automatically discovers workflows from this directory.
+Workflow files use .yml or .yaml.
+A repository can contain multiple workflow files.
+Workflow files outside .github/workflows/ are ignored.

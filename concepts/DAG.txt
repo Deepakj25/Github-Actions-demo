@@ -1,0 +1,39 @@
+DAG (Directed Acyclic Graph)
+A Directed Acyclic Graph (DAG) is the execution graph GitHub builds from a workflow to determine job execution order and dependencies.
+
+GitHub does not execute workflows line by line. It first creates a DAG and then schedules jobs based on it.
+
+DAG Components
+Node → Job
+Edge → Dependency created using needs
+
+        Build
+          │
+     ┌────┴────┐
+     ▼         ▼
+   Test    Security
+      └─────┬─────┘
+            ▼
+         Deploy
+
+Scheduler Logic
+GitHub follows a simple rule:
+A job is eligible to run only when all its dependencies are satisfied.
+
+Execution Flow
+Parse the workflow.
+Build the DAG.
+Find jobs with no unmet dependencies.
+Allocate runners.
+Execute eligible jobs.
+Repeat until all jobs complete.
+
+Cyclic Dependencies
+Cycles are not allowed.
+Build
+ ↓
+Test
+ ↓
+Deploy
+ ↓
+Build ❌

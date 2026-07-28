@@ -1,0 +1,24 @@
+name: Runner Lab
+
+on:
+  workflow_dispatch:
+
+jobs:
+  job-1:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create file
+        run: |
+          echo "Created by Job 1" > demo.txt
+
+      - name: Read file in another step
+        run: cat demo.txt
+
+  job-2:
+    needs: job-1
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Try reading Job 1 file
+        run: cat demo.txt
