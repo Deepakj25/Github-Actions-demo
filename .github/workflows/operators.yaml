@@ -1,0 +1,106 @@
+name: Expression Operators Lab
+
+on:
+  workflow_dispatch:
+
+jobs:
+  operators:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Equality (==)
+        run: |
+          echo "'main' == 'main'"
+          echo "${{ 'main' == 'main' }}"
+
+          echo "'main' == 'develop'"
+          echo "${{ 'main' == 'develop' }}"
+
+      - name: Not Equal (!=)
+        run: |
+          echo "'main' != 'develop'"
+          echo "${{ 'main' != 'develop' }}"
+
+          echo "'main' != 'main'"
+          echo "${{ 'main' != 'main' }}"
+
+      - name: Greater Than (>)
+        run: |
+          echo "10 > 5"
+          echo "${{ 10 > 5 }}"
+
+          echo "5 > 10"
+          echo "${{ 5 > 10 }}"
+
+      - name: Less Than (<)
+        run: |
+          echo "5 < 10"
+          echo "${{ 5 < 10 }}"
+
+          echo "10 < 5"
+          echo "${{ 10 < 5 }}"
+
+      - name: Greater Than or Equal (>=)
+        run: |
+          echo "10 >= 10"
+          echo "${{ 10 >= 10 }}"
+
+          echo "15 >= 10"
+          echo "${{ 15 >= 10 }}"
+
+          echo "5 >= 10"
+          echo "${{ 5 >= 10 }}"
+
+      - name: Less Than or Equal (<=)
+        run: |
+          echo "10 <= 10"
+          echo "${{ 10 <= 10 }}"
+
+          echo "5 <= 10"
+          echo "${{ 5 <= 10 }}"
+
+          echo "15 <= 10"
+          echo "${{ 15 <= 10 }}"
+
+      - name: Logical AND (&&)
+        run: |
+          echo "${{ true && true }}"
+          echo "${{ true && false }}"
+          echo "${{ false && true }}"
+          echo "${{ false && false }}"
+
+      - name: Logical OR (||)
+        run: |
+          echo "${{ true || true }}"
+          echo "${{ true || false }}"
+          echo "${{ false || true }}"
+          echo "${{ false || false }}"
+
+      - name: Parentheses
+        run: |
+          echo "${{ (true || false) && true }}"
+          echo "${{ true || (false && false) }}"
+          echo "${{ (false || false) && true }}"
+
+      - name: Real GitHub Context Examples
+        run: |
+          echo "Branch      : ${{ github.ref_name }}"
+          echo "Event       : ${{ github.event_name }}"
+          echo "Actor       : ${{ github.actor }}"
+
+          echo ""
+          echo "Is Main Branch?"
+          echo "${{ github.ref_name == 'main' }}"
+
+          echo ""
+          echo "Is Manual Trigger?"
+          echo "${{ github.event_name == 'workflow_dispatch' }}"
+
+          echo ""
+          echo "Main AND Manual?"
+          echo "${{ github.ref_name == 'main' && github.event_name == 'workflow_dispatch' }}"
+
+          echo ""
+          echo "Main OR Develop?"
+          echo "${{ github.ref_name == 'main' || github.ref_name == 'develop' }}"
