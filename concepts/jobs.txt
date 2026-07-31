@@ -34,5 +34,5 @@ Key Takeaway
 Jobs are parallel by default.
 Steps are always sequential.
 Every job gets a fresh runner.
-Steps in the same job share the same runner and workspace.
+Steps in the same job share the same runner  , file systel and workspace.
 needs is what creates dependencies between jobs.

@@ -1,0 +1,64 @@
+name: Context Lab
+
+on:
+  workflow_dispatch:
+
+env:
+  APP_NAME: DevOps-Demo
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    outputs:
+      app-name: ${{ env.APP_NAME }}
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show GitHub Context
+        run: |
+          echo "Repository : ${{ github.repository }}"
+          echo "Actor      : ${{ github.actor }}"
+          echo "Branch     : ${{ github.ref_name }}"
+          echo "Commit SHA : ${{ github.sha }}"
+          echo "Event      : ${{ github.event_name }}"
+
+      - name: Show Runner Context
+        run: |
+          echo "OS         : ${{ runner.os }}"
+          echo "Arch       : ${{ runner.arch }}"
+          echo "Workspace  : ${{ runner.workspace }}"
+
+      - name: Show Env Context
+        run: |
+          echo "Application : ${{ env.APP_NAME }}"
+
+      - name: Dummy Step
+        id: build_step
+        run: |
+          echo "Application Build Successful"
+
+      - name: Step Context
+        run: |
+          echo "Previous Step Outcome    : ${{ steps.build_step.outcome }}"
+          echo "Previous Step Conclusion : ${{ steps.build_step.conclusion }}"
+
+      - name: Job Context
+        run: |
+          echo "Current Job Status : ${{ job.status }}"
+
+  deploy:
+
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Needs Context
+        run: |
+          echo "Build Result : ${{ needs.build.result }}"

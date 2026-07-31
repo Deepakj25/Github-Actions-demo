@@ -1,0 +1,126 @@
+What is a Runner?
+
+A runner is the execution environment where a GitHub Actions job runs.
+
+Job = WHAT to execute
+Runner = WHERE to execute
+
+The runner application receives the job from GitHub and executes its steps.
+
+Job → Runner Relationship
+Each job executes on its own runner environment.
+All steps within a job execute on the same runner.
+Steps therefore share the same filesystem/workspace.
+Different jobs do not automatically share files or workspace.
+
+Workflow
+   │
+   ├── Build Job ──► Runner A
+   │                   ├── Step 1
+   │                   ├── Step 2
+   │                   └── Step 3
+   │
+   └── Test Job ───► Runner B
+
+runs-on
+runs-on specifies the runner requirements for a job.
+build:
+  runs-on: ubuntu-latest
+
+Think:
+Schedule this job on a runner matching ubuntu-latest.
+
+GitHub-Hosted Runner
+Infrastructure is managed by GitHub.
+
+You don't manage:
+
+OS patching
+Runner application maintenance
+Machine lifecycle
+Base software configuration
+
+This makes GitHub-hosted runners convenient for normal CI workloads.
+
+Job eligible
+    ↓
+Fresh runner environment
+    ↓
+Execute job
+    ↓
+Job completes
+    ↓
+Environment discarded
+
+Standard GitHub-hosted runners are ephemeral: each job starts with a clean environment.
+
+Self-Hosted Runner
+It can run on your own:
+
+VM
+Physical server
+Cloud infrastructure
+Container/Kubernetes-based infrastructure
+
+You are responsible for things such as:
+
+Infrastructure
+OS maintenance
+Installed tools
+Networking
+Scaling
+Security
+Runner lifecycle/cleanup
+
+Traditional self-hosted runners can remain available after a job completes and receive another job.
+
+Workspace & Checkout
+The job's working area is available through:
+
+GITHUB_WORKSPACE
+
+A fresh runner does not automatically contain your repository code.
+
+When repository files are required:
+- uses: actions/checkout@v4
+
+Checkout places the repository contents into the workspace.
+Checkout is not required if the job doesn't need repository files.
+
+actions/checkout gets repository code onto the runner
+
+                    GitHub Actions
+                         │
+                  Job needs runner
+                         │
+              ┌──────────┴──────────┐
+              ▼                     ▼
+       GitHub-Hosted           Self-Hosted
+          Runner                 Runner
+              │                     │
+       GitHub manages           You manage
+       infrastructure          infrastructure
+
+Persistent vs Ephemeral — Important Distinction
+
+Don't memorize:
+
+GitHub-hosted = ephemeral
+Self-hosted = persistent
+
+That's too simplistic.
+
+A traditional self-hosted runner can remain registered and execute multiple jobs:
+That creates a security concern.
+
+Files or state left behind by Job A could potentially affect Job B if cleanup/isolation is inadequate.
+
+For production CI/CD, organizations can instead design ephemeral self-hosted runners:
+Job
+ ↓
+Create runner
+ ↓
+Execute job
+ ↓
+Destroy runner
+This provides self-hosted control while improving isolation.

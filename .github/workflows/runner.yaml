@@ -20,5 +20,5 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Try reading Job 1 file
-        run: cat demo.txt
+      - name: Try reading Job 1 file. #jobs runs in different runners, so this will fail
+        run: cat demo.txt.            #they share no file system, so the file created in job-1 is not available in job-2
