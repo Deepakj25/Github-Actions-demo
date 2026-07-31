@@ -1,0 +1,64 @@
+Expressions (${{ }})
+Definition
+An expression allows GitHub to evaluate a value before the job is sent to the runner.
+
+Why Do We Need Expressions?
+GitHub needs a way to evaluate values that are only known at workflow runtime.
+
+Examples:
+Current branch
+Actor
+Repository
+Runner OS
+Workflow name
+
+These values are provided by GitHub through contexts.
+${{ github.actor }}
+${{ github.ref }}
+${{ runner.os }}
+
+Execution flow
+            GitHub
+      (Expression Engine)
+──────────────────────────────
+Reads YAML
+Evaluates ${{ }}
+Creates Job
+        │
+        ▼
+──────── Runner ──────────────
+Starts Shell (Bash/PowerShell)
+Expands $VAR
+Executes Commands
+
+Github evaluated expression before runner starts.
+shall expands values during command execution
+
+Expressions vs Shell Variables
+| Expression                          | Shell Variable              |
+| ----------------------------------- | --------------------------- |
+| `${{ }}`                            | `$VAR`                      |
+| Evaluated by GitHub                 | Evaluated by Shell          |
+| Before job execution                | During job execution        |
+| Used anywhere GitHub processes YAML | Used inside `run:` commands |
+
+GitHub does not understand shell variables.
+runs-on: $APP (Invalid)
+
+name: is processed by GitHub, not Bash.
+name: Deploy $APP (invalid)
+
+Inside run: Both Can Be Used
+- run: |
+    echo "${{ github.actor }}"
+    echo $APP
+
+                YAML
+                 │
+      Is GitHub reading it?
+          │            │
+         Yes          No
+          │            │
+   Use ${{ }}     Is it inside run:?
+                       │
+                  Yes → Use $VAR

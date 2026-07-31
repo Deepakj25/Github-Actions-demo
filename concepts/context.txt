@@ -1,0 +1,54 @@
+Context
+Definition
+A Context is a GitHub-provided object that exposes runtime information about the workflow, event, runner, jobs, steps, and execution environment.
+GitHub owns the value.
+Contexts are read-only.
+
+Why Contexts?
+GitHub already knows information like:
+
+Branch
+Commit SHA
+Repository
+Workflow name
+Actor
+Runner OS
+
+Contexts expose this information to your workflow at runtime.
+
+env vs context
+| `env`                    | Context                      |
+| ------------------------ | ---------------------------- |
+| User-defined values      | GitHub-provided runtime data |
+| You define the value     | GitHub generates the value   |
+| Example: `REGION=eastus` | Example: `github.actor`      |
+
+Common Contexts
+| Context  | Purpose                                  |
+| -------- | ---------------------------------------- |
+| `github` | Repository, branch, commit, actor, event |
+| `runner` | Runner OS, architecture, workspace       |
+| `env`    | User-defined environment variables       |
+| `job`    | Current job information                  |
+| `steps`  | Previous step results/outcomes           |
+| `needs`  | Information from dependent jobs          |
+
+Accessing a Context
+
+Contexts are accessed using expressions:
+${{ github.actor }}
+${{ github.ref }}
+${{ runner.os }}
+${{ steps.build.outcome }}
+${{ needs.build.result }}
+
+Remember
+Who owns this value?
+        │
+   ┌────┴────┐
+   │         │
+   ▼         ▼
+Me       GitHub
+   │         │
+   ▼         ▼
+env     Context
