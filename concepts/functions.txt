@@ -1,0 +1,35 @@
+Expression Functions
+
+├── String
+│     ├── contains()
+│     ├── startsWith()
+│     └── endsWith()
+│
+├── Formatting
+│     ├── format()
+│     └── join()
+│
+├── JSON
+│     ├── toJSON()
+│     └── fromJSON()
+│
+├── Status
+│     ├── success()
+│     ├── failure()
+│     ├── cancelled()
+│     └── always()
+│
+└── Utility
+      └── hashFiles()
+
+      these are case-insenitive
+
+
+
+| Function      | Returns true when           |
+| ------------- | --------------------------- |
+| `success()`   | Everything before succeeded    default behaviour|
+| `failure()`   | Something failed            |
+| `always()`    | Always                      |
+| `cancelled()` | Workflow was cancelled      |
+

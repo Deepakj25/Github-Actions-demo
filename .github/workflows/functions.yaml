@@ -1,0 +1,38 @@
+name: Expression Functions Lab
+
+on:
+  workflow_dispatch:
+
+env:
+  APP_NAME: github-actions-demo
+
+jobs:
+  functions:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: contains()
+        run: |
+          echo "contains('github-actions','actions')"
+          echo "${{ contains('github-actions','actions') }}"
+
+          echo ""
+          echo "contains('github-actions','azure')"
+          echo "${{ contains('github-actions','azure') }}"
+
+      - name: startsWith()
+        run: |
+          echo "${{ startsWith('release/v1','release/') }}"
+          echo "${{ startsWith('feature/login','release/') }}"
+
+      - name: endsWith()
+        run: |
+          echo "${{ endsWith('backend-prod','-prod') }}"
+          echo "${{ endsWith('backend-dev','-prod') }}"
+
+      - name: format()
+        run: |
+          echo "${{ format('Hello {0}', github.actor) }}"
+
+          echo "${{ format('{0}-{1}', github.ref_name, github.sha) }}"

@@ -1,0 +1,20 @@
+GitHub
+
+↓
+
+Evaluate expression
+
+↓
+
+TRUE ?
+
+↓
+
+Send step to Runner
+
+↓
+
+Runner executes Bash
+
+Github evaluatea if before runner executes the step
+if:false : github never sends this to runner
