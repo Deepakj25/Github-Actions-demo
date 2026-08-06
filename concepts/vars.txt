@@ -1,0 +1,18 @@
+ Mental model 
+                 Is this value shared?
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+         Yes                   No
+          │                     │
+       Is it sensitive?    Is it only for
+          │                this workflow?
+    ┌─────┴─────┐              │
+    │           │              │
+   Yes         No             Yes
+    │           │              │
+ secrets      vars           env
+
+ How to decide what to use..?
+ I first determine whether the value is sensitive. If it is, I use secrets. 
+ If it's non-sensitive and shared across repositories or workflows, I use vars. If it's only relevant to a specific workflow, job, or step, I use env
