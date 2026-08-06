@@ -28,3 +28,17 @@ jobs:
           echo "Workflow: $WORKFLOW_VAR"
           echo "Job: $JOB_VAR"
           echo "Step: $STEP_VAR"
+
+    job2:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set variables
+        run: |
+          echo "Name=GitHub Actions" >> "$GITHUB_ENV "
+          echo "Version=1.0.0" >> "$GITHUB_ENV"
+
+      - name: Print variables
+        run: |
+          echo "Name: $Name"
+          echo "Version: $Version" 

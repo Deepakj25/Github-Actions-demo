@@ -1,0 +1,26 @@
+GITHUB_ENV is a special file managed by GitHub.
+Use it to pass environment variables between steps in the same job.
+Variables become available from the next step, not the current one (not in current step)
+
+Syntax
+echo "NAME=value" >> $GITHUB_ENV
+
+Internal working
+GitHub creates
+/tmp/github_env_xxxxxx
+
+When you write in step 1
+echo "NAME=Dishu" >> $GITHUB_ENV
+
+The file becomes
+NAME=Dishu
+
+After Step 1 finishes,
+GitHub reads the file.
+
+It creates an environment variable.
+NAME=Dishu
+
+Then starts Step 2.
+Step 2 automatically receives
+$NAME
