@@ -35,7 +35,7 @@ jobs:
     steps:
       - name: Set variables
         run: |
-          echo "Name=GitHub Actions" >> "$GITHUB_ENV "
+          echo "Name=GitHub Actions" >> "$GITHUB_ENV"
           echo "Version=1.0.0" >> "$GITHUB_ENV"
 
       - name: Print variables
