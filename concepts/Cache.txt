@@ -1,0 +1,126 @@
+Cache is a mechanism that restores previously saved dependencies to speed up future workflow runs. 
+At the end of a successful job, actions/cache creates a new immutable cache only if the primary key does not already exist.
+
+The real purpose of Cache is:
+Avoid repeating expensive work across workflow runs.
+
+Cache Key
+A cache key is simply an identifier that tells GitHub:
+When can I safely reuse this cache?
+
+If you see:
+key: npm-cache
+in an exam, that's usually not the best design.
+
+A better key is based on the dependency lock file, for example:
+key: npm-${{ hashFiles('package-lock.json') }}
+
+Github bacically checks the key before every run..If key changes it restore the dependency.
+
+examplehashFiles() → cache changes when dependencies change.
+github.ref_name → cache is scoped to a branch.
+Combining them → branch-specific dependency cache.
+
+Restore keys
+- uses: actions/cache@v4
+  with:
+    path: ~/.npm
+    key: npm-${{ hashFiles('package-lock.json') }}
+    restore-keys: |
+      npm-
+
+GitHub searches
+npm-XYZ999
+
+Not found.
+Then it checks
+
+Does any cache start with
+npm-
+
+If yes
+↓
+Restore the closest matching cache
+
+GitHub searches the restore-keys in order and restores the most recent matching cache if available.
+this is required when most of the dependencies are same. in this case Github restores the mtaching/latest cache and downloads only new dependencies.
+
+A good answer is:
+
+restore-keys improves cache hit rates by allowing GitHub to restore a partially matching cache 
+when the exact cache key is unavailable. This avoids downloading all dependencies again after small changes.
+
+If we have multiple restore-keys..?
+
+restore-keys:
+ubuntu-npm-
+ubuntu-
+default-
+
+Try 1
+Found?
+YES
+↓
+STOP
+----------------
+Try 2
+Never Executed
+----------------
+Try 3
+Never Executed
+
+cache-miss : if github cache is not present 
+cache-hit : we want something and its already present in github cache
+
+However, the cache-hit output from actions/cache is only true for an exact match on the primary key. 
+If the cache is restored via restore-keys, cache-hit is false. That's why, in GitHub Actions terminology,
+ it's treated as a cache miss with a restored fallback cache, not an exact cache hit.
+
+cache are immutable : github does not override the cache in storage with same key
+
+Workflow Starts
+       │
+       ▼
+actions/cache (Restore Phase)
+       │
+       ▼
+Search Primary Key
+       │
+ ┌─────┴──────────┐
+ │                │
+ ▼                ▼
+Found          Not Found
+(Hit)          (Miss)
+ │                │
+ ▼                ▼
+Restore       Check restore-keys
+Cache             │
+                  ▼
+            Match Found?
+             │        │
+             ▼        ▼
+      Restore      No Match
+      Fallback        │
+        Cache         ▼
+                 Continue Workflow
+                       │
+                       ▼
+              npm install / mvn package / etc.
+                       │
+                       ▼
+             Job Finishes Successfully
+                       │
+                       ▼
+          actions/cache (Save Phase)
+                       │
+                       ▼
+Does Primary Key Already Exist?
+            │
+      ┌─────┴──────┐
+      │            │
+      ▼            ▼
+     Yes           No
+      │            │
+      ▼            ▼
+ Do NOT Save    Save New Cache
+ (Immutable)    with Primary Key

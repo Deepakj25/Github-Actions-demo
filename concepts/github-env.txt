@@ -1,5 +1,6 @@
 GITHUB_ENV is a special file managed by GitHub.
-Use it to pass environment variables between steps in the same job.
+Use it to pass environment variables between steps in the same job. (Within same steps only withine job)
+-> for passing between jobs we have $GITHUB_OUTPUT
 Variables become available from the next step, not the current one (not in current step)
 
 Syntax
@@ -8,6 +9,7 @@ echo "NAME=value" >> $GITHUB_ENV
 Internal working
 GitHub creates
 /tmp/github_env_xxxxxx
+-> The GITHUB_ENV file exists only for the current job. (not avaiable for another job since that runs on diff agent)
 
 When you write in step 1
 echo "NAME=Dishu" >> $GITHUB_ENV

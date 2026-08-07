@@ -1,0 +1,43 @@
+Data Flow
+
+Within a Job
+────────────
+Step 1
+   │
+   ▼
+Step 2
+
+Use:
+✅ GITHUB_ENV
+
+
+Across Jobs
+───────────
+Job 1
+   │
+   ▼
+Job 2
+
+Use:
+✅ GITHUB_OUTPUT + Job Outputs
+
+GITHUB_OUTPUT creates step outputs.
+Stored in workflow metadata
+Every producing step must have an id.
+Access outputs using
+Outputs are available only after the step finishes. (from next step)
+
+${{ steps.step_id.outputs.output_name }}
+
+Now comes the missing piece:
+Step Outputs are only available within the same job.
+How do we make them available to another job?
+That's where Job Outputs come in.
+
+Step Output
+      │
+      ▼
+Job Output
+      │
+      ▼
+Another Job
