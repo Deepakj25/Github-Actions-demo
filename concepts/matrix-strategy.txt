@@ -1,0 +1,94 @@
+# Matrix strategy
+
+strategy:
+  matrix:
+    node: [18, 20, 22]
+
+             Matrix
+                │
+       ┌────────┼────────┐
+       ▼        ▼        ▼
+    Node 18   Node 20   Node 22
+       │        │        │
+       ▼        ▼        ▼
+     Job 1    Job 2    Job 3
+
+GitHub creates separate job runs for each matrix combination.
+
+Matrix combination rule :
+
+If you have:
+OS = 2 values
+Node = 2 values
+Python = 3 values
+
+GitHub generates:
+2 × 2 × 3 = 12 job combinations.
+
+// exclude
+
+strategy:
+  matrix:
+    os: [ubuntu-latest, windows-latest]
+    node: [20, 22]
+
+    exclude:
+      - os: windows-latest
+        node: 22
+
+Ubuntu + Node 20     ✅
+Ubuntu + Node 22     ✅
+Windows + Node 20    ✅
+Windows + Node 22    ❌ excluded
+
+//include
+1. Add extra values to an existing combination
+2. Add a completely new combination (if any exisiting combination does not exist)
+
+Suppose you want to add a special value to a matrix combination.
+strategy:
+  matrix:
+    os: [ubuntu-latest, windows-latest]
+    node: [20, 22]
+
+    include:
+      - os: ubuntu-latest
+        node: 22
+        environment: production
+
+Ubuntu + Node 20
+Ubuntu + Node 22 + environment=production
+Windows + Node 20
+Windows + Node 22
+
+//Remember
+exclude
+   ↓
+REMOVE combinations
+
+include
+   ↓
+ADD/EXTEND combinations
+
+// how do we access matrix values.?
+${{ matrix.os }}
+
+
+//fail-fast
+default : true
+1. if any one matrix fails : all other matrix jobs are cancelled.
+
+-> fail-fast : false (if one fails , other matrix keeps running)
+
+//Confusion
+1. fail-fast : Controls other matrix jobs.
+2. continue-on-error : Controls whether a particular job is allowed to fail without making the workflow fail.
+
+// max-paralel : how many matrix jobs can run i parallel at same time
+strategy:
+  max-parallel: 2
+  matrix:
+    node: [18, 20, 22, 24]
+
+
+
