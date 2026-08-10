@@ -14,7 +14,8 @@ jobs:
       - name: Generate matrix
         id: generate
         run: |
-          echo 'apps=["app1","app2","app3"]' >> "$GITHUB_OUTPUT"
+          apps='["frontend","backend","worker"]'
+          echo "apps=$apps" >> "$GITHUB_OUTPUT"
 
 
   test:
