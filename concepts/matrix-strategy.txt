@@ -90,5 +90,9 @@ strategy:
   matrix:
     node: [18, 20, 22, 24]
 
+//Dynamic Matrix
+-> one job prepaes the matrix values
+-> another job uses the values.
+
 
 

@@ -1,0 +1,28 @@
+name: Dynamic Matrix Example
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+
+    outputs:
+      apps: ${{ steps.generate.outputs.apps }}
+
+    steps:
+      - name: Generate matrix
+        id: generate
+        run: |
+          echo 'apps=["app1","app2","app3"]' >> "$GITHUB_OUTPUT"
+
+
+  test:
+    needs: prepare
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        app: ${{ fromJSON(needs.prepare.outputs.apps) }}
+
+    steps:
+      - name: Test application
+        run: |
+          echo "Testing ${{ matrix.app }}"
