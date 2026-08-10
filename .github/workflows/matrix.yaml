@@ -13,16 +13,17 @@ jobs:
         exclude:
           - os: windows-latest
             node: 22
+            
         include:
-          - os: ubuntu-latest
+          - os: macos-latest
             node: 22
-            environment: dev
+            environment: test
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Show Matrix Values
         run: |
-          echo "OS: ${{ matrix.environment }}"
+          echo "Environment: ${{ matrix.environment }}"
           echo "OS: ${{ matrix.os }}"
           echo "Node: ${{ matrix.node }}"
