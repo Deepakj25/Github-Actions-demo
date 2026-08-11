@@ -18,10 +18,10 @@ on:
         type: number
         # default: '1'
 
-      secrets:
-        MY_SECRET:
-          description: 'A secret value'
-          required: true
+    secrets:
+      MY_SECRET:
+        description: 'A secret value'
+        required: true
 jobs:
   build:
     runs-on: ubuntu-latest
