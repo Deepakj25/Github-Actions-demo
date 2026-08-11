@@ -36,6 +36,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+
     outputs: #used to pass outputs from the job to the reusable workflow outputs
       deployment-name: ${{ steps.create-deployment-name.outputs.name }}
 
@@ -58,4 +59,4 @@ jobs:
       - name: Create output - deployment name
         id: create-deployment-name
         run: |
-          echo "name: ${{ inputs.enviornment }}-deployment" >> $GITHUB_OUTPUT
+          echo "name=${{ inputs.enviornment }}-deployment" >> $GITHUB_OUTPUT
