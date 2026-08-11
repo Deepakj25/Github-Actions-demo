@@ -15,4 +15,5 @@ jobs:
         run: echo "Hello from the reusable workflow!"
 
       - name: Print env name
-        run: echo "Environment name is: ${{ inputs.enviornment }}"
+        run: |
+          echo "Environment name is: ${{ inputs.enviornment }}"
