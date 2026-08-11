@@ -1,17 +1,21 @@
 name: Reusable Workflow Intro
+
 on:
   workflow_call:
+
     inputs:
       enviornment:
         description: 'Enviornment name'
-        required: true #workflow will fail if this input is not provided
-        type: string
+        required: true #workflow will fail if this input is not provided .
+        type: string #If we have default value set : if we dont pass from caller it will take default..workflow will not fail..else it will take the value passed from caller workflow
         default: 'Dev' #if not provided, default value will be used
+        
       enable-logging:
         description: 'Enable logging'
         required: true
         type: boolean
         # default: 'false'
+
       replicas:
         description: 'Number of replicas'
         required: true
@@ -22,9 +26,19 @@ on:
       REPO_SECRET:
         description: 'A secret value'
         required: true
+
+    # used to pass outputs from the reusable workflow to the caller workflow
+    outputs:
+      deployment-name:
+        description: 'The name of the deployment created in this workflow'
+        value: ${{ jobs.build.outputs.deployment-name }}
 jobs:
+
   build:
     runs-on: ubuntu-latest
+    outputs: #used to pass outputs from the job to the reusable workflow outputs
+      deployment-name: ${{ steps.create-deployment-name.outputs.name }}
+
     steps:
       - name: Print parameters
         run: |
@@ -33,6 +47,15 @@ jobs:
           echo "Enable Logging: ${{ inputs.enable-logging }}"
           echo "Replicas: ${{ inputs.replicas }}"
       
+      # secrets are accessible in the reusable workflow, 
+      # but they are not passed as inputs.
+      #You can access them directly using the secrets context ${{ secrets.REPO_SECRET }}.
       - name: Use secret
         run: |
           echo "Using secret value: ${{ secrets.REPO_SECRET }}"
+
+      # set output for the job to be used in the reusable workflow outputs
+      - name: Create output - deployment name
+        id: create-deployment-name
+        run: |
+          echo "name: ${{ inputs.enviornment }}-deployment" >> $GITHUB_OUTPUT

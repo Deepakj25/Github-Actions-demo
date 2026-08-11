@@ -12,4 +12,12 @@ jobs:
 
     # secrets:
     #   REPO_SECRET: ${{ secrets.REPO_SECRET }} ##explicitly passing the secret
-    secrets: inherit ##inheriting all secrets from the caller workflow
+    secrets: inherit ##inheriting all applicable secrets from the caller workflow
+
+  use-deployment-name:
+    needs: call-reusable-workflow
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use deployment name from reusable workflow
+        run: |
+          echo "Deployment Name from reusable workflow: ${{ needs.call-reusable-workflow.outputs.deployment-name }}"
