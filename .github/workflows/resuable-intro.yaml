@@ -19,7 +19,7 @@ on:
         # default: '1'
 
     secrets:
-      MY_SECRET:
+      REPO_SECRET:
         description: 'A secret value'
         required: true
 jobs:
@@ -35,4 +35,4 @@ jobs:
       
       - name: Use secret
         run: |
-          echo "Using secret value: ${{ secrets.MY_SECRET }}"
+          echo "Using secret value: ${{ secrets.REPO_SECRET }}"

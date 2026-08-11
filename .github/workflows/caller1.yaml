@@ -11,5 +11,5 @@ jobs:
       replicas: 3
 
     # secrets:
-    #   MY_SECRET: ${{ secrets.REPO_SECRET }} ##explicitly passing the secret
+    #   REPO_SECRET: ${{ secrets.REPO_SECRET }} ##explicitly passing the secret
     secrets: inherit ##inheriting all secrets from the caller workflow
