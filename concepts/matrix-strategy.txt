@@ -94,5 +94,9 @@ strategy:
 -> one job prepaes the matrix values
 -> another job uses the values.
 
+//fail-fast vs continue-on-error
+GitHub's current documentation explicitly states that when continue-on-error is true for a matrix job, 
+that job's failure does not affect the other matrix jobs, even when fail-fast: true.
+
 
 

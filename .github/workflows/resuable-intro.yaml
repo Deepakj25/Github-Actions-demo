@@ -1,0 +1,10 @@
+name: Reusable Workflow Intro
+on:
+  workflow_call:
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Gretting
+            run: echo "Hello from the reusable workflow!"
+    
