@@ -4,9 +4,9 @@ on:
     inputs:
       enviornment:
         description: 'Enviornment name'
-        required: true
+        required: true #workflow will fail if this input is not provided
         type: string
-        # default: 'Dev'
+        default: 'Dev'. #if not provided, default value will be used
       enable-logging:
         description: 'Enable logging'
         required: true
@@ -17,21 +17,22 @@ on:
         required: true
         type: number
         # default: '1'
+
+      secrets:
+        MY_SECRET:
+          description: 'A secret value'
+          required: true
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Gretting
-        run: echo "Hello from the reusable workflow!"
-
-      - name: Print env name
+      - name: Print parameters
         run: |
-          echo "Environment name is: ${{ inputs.enviornment }}"
-
-      - name: Print logging status
+          echo "Hello from the reusable workflow!"
+          echo "Environment: ${{ inputs.enviornment }}"
+          echo "Enable Logging: ${{ inputs.enable-logging }}"
+          echo "Replicas: ${{ inputs.replicas }}"
+      
+      -name: Use secret
         run: |
-          echo "Logging is enabled: ${{ inputs.enable-logging }}"
-
-      - name: Print replica count
-        run: |
-          echo "Number of replicas is: ${{ inputs.replicas }}"
+          echo "Using secret value: ${{ secrets.MY_SECRET }}"

@@ -7,3 +7,9 @@ jobs:
   call-reusable-workflow:
     uses: ./.github/workflows/resuable-intro.yaml
 
+
+
+workflow_call input types: string, boolean, number.
+required: false allows the caller to omit the input.
+default: supplies the value when the caller omits it.
+Boolean inputs should be passed as booleans: true / false. (without "")
