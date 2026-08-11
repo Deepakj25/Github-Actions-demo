@@ -7,3 +7,5 @@ jobs:
     with:
       # You can pass inputs to the reusable workflow here if needed
       enviornment: "Dev"
+      enable-logging: true
+      replicas: 3

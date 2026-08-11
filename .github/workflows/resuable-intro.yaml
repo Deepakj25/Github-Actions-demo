@@ -7,6 +7,16 @@ on:
         required: true
         type: string
         # default: 'Dev'
+      enable-logging:
+        description: 'Enable logging'
+        required: true
+        type: boolean
+        # default: 'false'
+      replicas:
+        description: 'Number of replicas'
+        required: true
+        type: Number
+        # default: '1'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,3 +27,11 @@ jobs:
       - name: Print env name
         run: |
           echo "Environment name is: ${{ inputs.enviornment }}"
+
+      - name: Print logging status
+        run: |
+          echo "Logging is enabled: ${{ inputs.enable-logging }}"
+          
+      - name: Print replica count
+        run: |
+          echo "Number of replicas is: ${{ inputs.replicas }}"
