@@ -10,5 +10,5 @@ jobs:
       enable-logging: true
       replicas: 3
 
-      secrets:
-        MY_SECRET: ${{ secrets.REPO_SECRET }} ##explicitly passing the secret
+    secrets:
+      MY_SECRET: ${{ secrets.REPO_SECRET }} ##explicitly passing the secret
