@@ -15,7 +15,7 @@ on:
       replicas:
         description: 'Number of replicas'
         required: true
-        type: Number
+        type: number
         # default: '1'
 jobs:
   build:
@@ -31,7 +31,7 @@ jobs:
       - name: Print logging status
         run: |
           echo "Logging is enabled: ${{ inputs.enable-logging }}"
-          
+
       - name: Print replica count
         run: |
           echo "Number of replicas is: ${{ inputs.replicas }}"
