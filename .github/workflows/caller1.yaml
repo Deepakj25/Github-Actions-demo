@@ -4,3 +4,6 @@ on:
 jobs:
   call-reusable-workflow:
     uses: ./.github/workflows/resuable-intro.yaml
+    with:
+      # You can pass inputs to the reusable workflow here if needed
+      enviornment: "Dev"

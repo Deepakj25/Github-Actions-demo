@@ -1,10 +1,18 @@
 name: Reusable Workflow Intro
 on:
   workflow_call:
+    inputs:
+      enviornment:
+        description: 'Enviornment name'
+        required: true
+        type: string
+        # default: 'Dev'
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Gretting
         run: echo "Hello from the reusable workflow!"
-    
+
+      - name: Print env name
+        run: echo "Environment name is: ${{ inputs.name }}"

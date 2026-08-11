@@ -1,0 +1,8 @@
+// workflow call
+makes a workflow reusable/callable.
+A reusable workflow is called at the job level
+ex.
+jobs:
+  call-reusable-workflow:
+    uses: ./.github/workflows/resuable-intro.yaml
+
