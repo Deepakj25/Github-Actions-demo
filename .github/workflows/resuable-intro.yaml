@@ -33,6 +33,6 @@ jobs:
           echo "Enable Logging: ${{ inputs.enable-logging }}"
           echo "Replicas: ${{ inputs.replicas }}"
       
-      -name: Use secret
+      - name: Use secret
         run: |
           echo "Using secret value: ${{ secrets.MY_SECRET }}"
