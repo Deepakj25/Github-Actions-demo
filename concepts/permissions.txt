@@ -1,0 +1,9 @@
+// Permissions
+permissions:
+  contents: read # writ/none
+
+  The reusable workflow can operate with the permissions available to it,
+   but it cannot elevate the caller's granted permissions.
+
+Reusable workflows can maintain or reduce GITHUB_TOKEN permissions, 
+but cannot elevate them beyond the caller's available permissions.
