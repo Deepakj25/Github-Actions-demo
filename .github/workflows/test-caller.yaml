@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
 jobs:
   test:
-    uses: Deepakj25/Deepakj25/.github/workflows/blank.yaml
+    uses: Deepakj25/Deepakj25/.github/workflows/blank.yaml@master
     with:
         enviornment: "Dev"
         enable-logging: true
