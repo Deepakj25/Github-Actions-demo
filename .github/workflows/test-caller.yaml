@@ -1,0 +1,12 @@
+name: testing
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    uses: ./.github/workflows/resuable-Intro.yaml
+    with:
+        enviornment: "Dev"
+        enable-logging: true
+        replicas: 3
+    secrets:
+        REPO_SECRET: ${{ secrets.REPO_SECRET }}

@@ -14,6 +14,7 @@ jobs:
     #   REPO_SECRET: ${{ secrets.REPO_SECRET }} ##explicitly passing the secret
     secrets: inherit ##inheriting all applicable secrets from the caller workflow
 
+  # This job will run after the reusable workflow job and will use the output from it
   use-deployment-name:
     needs: call-reusable-workflow
     runs-on: ubuntu-latest
