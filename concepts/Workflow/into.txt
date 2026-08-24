@@ -13,3 +13,12 @@ workflow_call input types: string, boolean, number.
 required: false allows the caller to omit the input.
 default: supplies the value when the caller omits it.
 Boolean inputs should be passed as booleans: true / false. (without "")
+
+
+//referencing a template
+Same repo: ./.github/workflows/file.yml
+Cross repo: OWNER/REPO/.github/workflows/file.yml@REF
+@branch → follows branch changes.
+@tag → stays at tagged commit.
+@SHA → pins to an exact commit.
+Full commit SHA is preferred for strong reproducibility/security.
