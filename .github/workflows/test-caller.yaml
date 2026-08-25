@@ -17,4 +17,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run Compsosite Action
-        uses: ./.github/actions/hello/intro.yaml
+        uses: ./.github/actions/hello
