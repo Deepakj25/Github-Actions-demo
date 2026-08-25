@@ -31,3 +31,8 @@ runs:
       id: generate
       run: echo "greeting=Hello ${{ inputs.name }}" >> "$GITHUB_OUTPUT"
       shell: bash
+
+    - name: if condition
+      if: ${{ inputs.enviornment == 'Dev' }}
+      run: echo "Hello from Dev environment"
+      shell: bash

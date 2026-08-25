@@ -1,40 +1,234 @@
-// Composite Action -> collection of steps.
--> called at step level
+Composite Action
+================
 
-How is this different from Reuable workflow
-1. Resuable workflow are called at job level
-2. Compsoite actions are called at step level
+A composite action is a custom GitHub Action made from a collection of steps.
+It lets you reuse step logic across workflows.
 
-ex.
+Composite actions are called at the step level.
 
-we need to create actions folder in repo (.github/actions/<folder-name>/action.yaml). or action.yml
-ex. .github/actions/hello/action.yaml
+Example:
 
+```yaml
 steps:
   - uses: ./.github/actions/hello
+```
 
-//Concept
-We add a Action directoty not full path containing action.yaml
-Github automatically loads the below supported file if present in the directory
 
+Composite Action vs Reusable Workflow
+=====================================
+
+1. Reusable workflows are called at the job level.
+2. Composite actions are called at the step level.
+
+Reusable workflow example:
+
+```yaml
+jobs:
+  call-workflow:
+    uses: ./.github/workflows/reusable.yaml
+```
+
+Composite action example:
+
+```yaml
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/hello
+```
+
+
+Where to Create a Composite Action
+==================================
+
+Create an action folder inside the repository:
+
+```text
+.github/actions/<action-folder-name>/action.yaml
+```
+
+Example:
+
+```text
+.github/actions/hello/action.yaml
+```
+
+You call the action by referencing the action directory, not the full file path:
+
+```yaml
+steps:
+  - uses: ./.github/actions/hello
+```
+
+GitHub automatically looks inside that directory for one of these supported files:
+
+```text
 action.yaml
 action.yml
-Dockerfile.
-
-//Passing inputs
-we can pass the paramter same as we pass in workflow
-Composite action inputs are treated as strings; unlike reusable workflow inputs, you don't declare type: boolean, type: number, etc.
-
-// env variables in calling workflow can be used inside composite acrtion
-since the env variables are part of job
--> it can be used with $var_name
-
-Composite actions can consume inputs.
-Composite-action inputs are passed with with:.
-Environment variables are accessed through the shell, e.g. $APP_ENV.
-GitHub contexts such as github.* and runner.* can be used in composite-action steps.
+Dockerfile
+```
 
 
+Basic Composite Action Structure
+================================
+
+```yaml
+name: Hello Composite Action
+description: A simple composite action
+
+inputs:
+  environment:
+    description: Environment name
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Print message
+      run: echo "Hello from composite action"
+      shell: bash
+```
+
+Important points:
+
+1. A composite action must use `runs.using: composite`.
+2. Each `run` step must define a `shell`.
+3. Composite actions can contain multiple steps.
+4. Composite actions can use inputs, environment variables, contexts, and outputs.
 
 
+Passing Inputs
+==============
 
+Inputs are passed to a composite action using `with:`.
+
+Caller workflow:
+
+```yaml
+steps:
+  - uses: ./.github/actions/hello
+    with:
+      environment: dev
+```
+
+Inside the composite action:
+
+```yaml
+run: echo "Environment is ${{ inputs.environment }}"
+shell: bash
+```
+
+Composite action inputs are treated as strings.
+
+Unlike reusable workflow inputs, composite action inputs do not support typed
+declarations like:
+
+```yaml
+type: boolean
+type: number
+```
+
+
+Environment Variables
+=====================
+
+Environment variables from the calling workflow job can be used inside a
+composite action because the composite action runs as part of that job.
+
+Caller workflow:
+
+```yaml
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/hello
+```
+
+Inside the composite action:
+
+```yaml
+run: echo "App environment is $APP_ENV"
+shell: bash
+```
+
+Use shell syntax for environment variables:
+
+```bash
+$APP_ENV
+```
+
+Use GitHub expression syntax for GitHub contexts and inputs:
+
+```yaml
+${{ inputs.environment }}
+${{ github.repository }}
+${{ runner.os }}
+```
+
+
+Outputs
+=======
+
+Composite actions can expose outputs using a step output.
+
+```yaml
+outputs:
+  greeting:
+    description: The generated greeting
+    value: ${{ steps.generate.outputs.greeting }}
+
+runs:
+  using: composite
+  steps:
+    - name: Generate greeting
+      id: generate
+      run: echo "greeting=Hello from composite action" >> "$GITHUB_OUTPUT"
+      shell: bash
+```
+
+Caller workflow:
+
+```yaml
+steps:
+  - id: hello
+    uses: ./.github/actions/hello
+
+  - name: Print action output
+    run: echo "${{ steps.hello.outputs.greeting }}"
+```
+
+
+Quick Summary
+=============
+
+1. Composite actions are reusable groups of steps.
+2. They are called inside `jobs.<job_id>.steps`.
+3. Local composite actions usually live under `.github/actions/<name>/action.yaml`.
+4. The caller uses the action directory path, for example `./.github/actions/hello`.
+5. Inputs are passed with `with:`.
+6. Environment variables are read using shell syntax, for example `$APP_ENV`.
+7. GitHub contexts are read using expression syntax, for example `${{ github.repository }}`.
+8. Outputs are created with `$GITHUB_OUTPUT` and exposed through the `outputs` block.
+
+
+// access from anohter repo
+this can be accesses same as we acess reusbale workflow
+
+github.action_path points to the directory where the current composite action is located, so its bundled files can be referenced reliably.
+
+Composite actions contain steps, not jobs.
+They don't define runs-on.
+They execute inside the caller's job.
+Job-level orchestration belongs to workflows/reusable workflows.
+Step-level reuse belongs to composite actions.
+
+GitHub requires the action metadata file to define the action's identity and how it runs. For a composite action, 
+the important structure is: name, description, optional author, optional inputs, optional outputs, and required runs.
+name, description, and runs are required.
+GitHub recommends lowercase input IDs. Input IDs have their own identifier syntax rules.
