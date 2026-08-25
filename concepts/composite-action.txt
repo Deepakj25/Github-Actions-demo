@@ -29,7 +29,10 @@ Composite action inputs are treated as strings; unlike reusable workflow inputs,
 since the env variables are part of job
 -> it can be used with $var_name
 
-
+Composite actions can consume inputs.
+Composite-action inputs are passed with with:.
+Environment variables are accessed through the shell, e.g. $APP_ENV.
+GitHub contexts such as github.* and runner.* can be used in composite-action steps.
 
 
 
