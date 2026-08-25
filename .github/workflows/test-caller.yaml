@@ -20,3 +20,5 @@ jobs:
       
       - name: Run Compsosite Action
         uses: ./.github/actions/hello
+        with:
+          enviornment: "Dev"

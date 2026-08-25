@@ -6,7 +6,25 @@ How is this different from Reuable workflow
 2. Compsoite actions are called at step level
 
 ex.
-steps:
-  - uses: ./.github/actions/setup-environment
 
-  
+we need to create actions folder in repo (.github/actions/<folder-name>/action.yaml). or action.yml
+ex. .github/actions/hello/action.yaml
+
+steps:
+  - uses: ./.github/actions/hello
+
+//Concept
+We add a Action directoty not full path containing action.yaml
+Github automatically loads the below supported file if present in the directory
+
+action.yaml
+action.yml
+Dockerfile.
+
+//Passing inputs
+
+
+
+
+
+

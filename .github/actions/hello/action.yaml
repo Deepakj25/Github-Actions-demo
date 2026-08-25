@@ -1,6 +1,10 @@
 name: Hello Composite Action
 description: A simple composite action
 
+inputs:
+  enviornment:
+    description: 'Environment name'
+
 runs:
   using: composite
   steps:    
@@ -9,5 +13,6 @@ runs:
       shell: bash
     
     - name: Step 2
-      run: echo "Hello from composite action step 2"
+      run: |
+        echo "Environment inside composite action: ${{ inputs.enviornment }}"
       shell: bash
