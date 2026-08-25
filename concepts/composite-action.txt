@@ -1,0 +1,12 @@
+// Composite Action -> collection of steps.
+-> called at step level
+
+How is this different from Reuable workflow
+1. Resuable workflow are called at job level
+2. Compsoite actions are called at step level
+
+ex.
+steps:
+  - uses: ./.github/actions/setup-environment
+
+  

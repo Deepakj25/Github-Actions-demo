@@ -12,3 +12,9 @@ jobs:
         replicas: 3
     secrets:
         REPO_SECRET: ${{ secrets.REPO_SECRET }}
+
+  Job2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Compsosite Action
+        uses: ./.github/actions/hello/intro.yaml
