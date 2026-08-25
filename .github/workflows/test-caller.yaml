@@ -16,5 +16,7 @@ jobs:
   Job2:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      
       - name: Run Compsosite Action
         uses: ./.github/actions/hello
