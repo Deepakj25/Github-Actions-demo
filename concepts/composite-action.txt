@@ -22,6 +22,13 @@ action.yml
 Dockerfile.
 
 //Passing inputs
+we can pass the paramter same as we pass in workflow
+Composite action inputs are treated as strings; unlike reusable workflow inputs, you don't declare type: boolean, type: number, etc.
+
+// env variables in calling workflow can be used inside composite acrtion
+since the env variables are part of job
+-> it can be used with $var_name
+
 
 
 

@@ -1,6 +1,10 @@
 name: testing
 on:
   workflow_dispatch:
+
+env:
+  WORKFLOW_VAR: "workflow"
+
 jobs:
   test:
     uses: Deepakj25/Deepakj25/.github/workflows/blank.yml@master

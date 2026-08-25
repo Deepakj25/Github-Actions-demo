@@ -12,7 +12,12 @@ runs:
       run: echo "Hello from composite action step 1"
       shell: bash
     
-    - name: Step 2
+    - name: Print inputs variable
       run: |
         echo "Environment inside composite action: ${{ inputs.enviornment }}"
+      shell: bash
+
+    - name: Print env variable
+      run: |
+        echo "Workflow  env variable inside composite action: $WORKFLOW_VAR"
       shell: bash
