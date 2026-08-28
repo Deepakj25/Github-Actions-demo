@@ -1,34 +1,272 @@
-//github scripts
+// GitHub Scripts - GH-200 notes
 
-GitHub Script
-    ↓
-Use small JavaScript snippets
-    ↓
-Interact with GitHub API
-    ↓
-Automate GitHub tasks
+============================================================
 
-#############
-You can also interact with GitHub's API using curl, for example:
+1. What is actions/github-script?
 
-curl \
-  -H "Authorization: Bearer $GITHUB_TOKEN" \
-  https://api.github.com/repos/OWNER/REPO
+actions/github-script lets a workflow run small JavaScript snippets without creating
+a full custom action.
 
-That works, but it means you handle the HTTP/API details yourself.
+Use it when the workflow needs to:
+- call the GitHub REST API
+- call the GitHub GraphQL API
+- read event and workflow metadata
+- create comments, labels, issues, dispatches, or summaries
+- compute values and return them as step outputs
 
-actions/github-script gives you an authenticated GitHub API client directly:
+1. Use a normal run step when the task is mainly shell, build, test, or file-system
+work. 
+2. Use github-script when the task is mainly GitHub API automation.
 
-Need ordinary shell operation?
-        ↓
-run: bash / PowerShell
+============================================================
 
-Need to call GitHub API?
-        ↓
-github-script
+2. Basic syntax
 
-three object
-github  → talk to GitHub APIs
-context → information about this workflow/event
-core    → Actions utilities such as logging/output
+- name: Example
+  uses: actions/github-script@v9
+  with:
+    script: |
+      console.log(context.repo.owner)
 
+The script is JavaScript and can use async/await directly.
+
+============================================================
+
+3. Important injected objects
+
+github
+  Authenticated Octokit REST/GraphQL client.
+  Use this to talk to GitHub APIs.
+
+context
+  Workflow and event metadata.
+  Common values:
+  - context.repo.owner
+  - context.repo.repo
+  - context.actor
+  - context.eventName
+  - context.ref
+  - context.sha
+  - context.payload
+  - context.issue.number, when the event is issue or pull-request related
+
+core
+  Actions toolkit utilities.
+  Common methods:
+  - core.info('message')
+  - core.warning('message')
+  - core.setFailed('message')
+  - core.setOutput('name', value)
+  - core.summary.addHeading(...).addTable(...).write()
+
+glob, io, exec
+  Other Actions toolkit helpers available in the script context.
+
+getOctokit
+  Creates an additional authenticated Octokit client from another token.
+  Useful for GitHub App tokens, PATs, or cross-repository automation.
+
+============================================================
+
+4. Authentication and permissions
+
+By default, github-script uses the workflow's GITHUB_TOKEN.
+
+Always set the least required permissions at workflow or job level:
+
+permissions:
+  contents: read
+  issues: write
+
+Examples:
+- reading repo metadata usually needs contents: read
+- commenting on issues needs issues: write
+- pull request operations may need pull-requests: write
+- creating workflow dispatches may need actions: write or contents: read,
+  depending on the API
+
+If GITHUB_TOKEN cannot access another repository or organization resource, pass a
+different token:
+
+uses: actions/github-script@v9
+with:
+  github-token: ${{ secrets.MY_PAT }}
+  script: |
+    const repo = await github.rest.repos.get({
+      owner: 'OWNER',
+      repo: 'REPO'
+    })
+
+Security reminder:
+- never print tokens or secrets
+- prefer fine-grained tokens or GitHub App tokens
+- restrict token permissions
+- avoid using pull_request_target with untrusted code unless you understand the
+  security risk
+
+============================================================
+
+5. REST API examples
+
+Read repository information:
+
+const repo = await github.rest.repos.get({
+  owner: context.repo.owner,
+  repo: context.repo.repo
+})
+
+Create an issue comment:
+
+await github.rest.issues.createComment({
+  owner: context.repo.owner,
+  repo: context.repo.repo,
+  issue_number: context.issue.number,
+  body: 'Thanks for opening this issue.'
+})
+
+Add labels:
+
+await github.rest.issues.addLabels({
+  owner: context.repo.owner,
+  repo: context.repo.repo,
+  issue_number: context.issue.number,
+  labels: ['triage']
+})
+
+============================================================
+
+6. GraphQL API example
+
+const data = await github.graphql(`
+  query($owner: String!, $repo: String!) {
+    repository(owner: $owner, name: $repo) {
+      nameWithOwner
+      isPrivate
+      defaultBranchRef {
+        name
+      }
+    }
+  }
+`, {
+  owner: context.repo.owner,
+  repo: context.repo.repo
+})
+
+============================================================
+
+7. Passing workflow data into scripts
+
+Do not place GitHub expressions directly inside JavaScript when the value can
+contain quotes, newlines, or untrusted user input.
+
+Prefer environment variables:
+
+- uses: actions/github-script@v9
+  env:
+    ISSUE_TITLE: ${{ github.event.issue.title }}
+  with:
+    script: |
+      const title = process.env.ISSUE_TITLE
+      core.info(`Issue title length: ${title.length}`)
+
+Why:
+- expressions are evaluated before the script runs
+- direct interpolation can break JavaScript syntax
+- direct interpolation can create script injection risk
+
+============================================================
+
+8. Outputs and result encoding
+
+The script return value becomes:
+
+steps.<step_id>.outputs.result
+
+Default result encoding is JSON. Use result-encoding: string when you want the
+raw string.
+
+- id: repo-name
+  uses: actions/github-script@v9
+  with:
+    result-encoding: string
+    script: |
+      return `${context.repo.owner}/${context.repo.repo}`
+
+- run: echo "${{ steps.repo-name.outputs.result }}"
+
+You can also set named outputs:
+
+core.setOutput('default_branch', repo.data.default_branch)
+
+============================================================
+
+9. Errors and workflow failure
+
+Throw an error or call core.setFailed() to fail the step:
+
+if (!context.payload.repository) {
+  core.setFailed('Repository payload is missing')
+}
+
+Use core.warning() for non-fatal warnings.
+
+============================================================
+
+10. Retries
+
+By default, API requests are not retried.
+
+Use retries for temporary API/network failures:
+
+with:
+  retries: 3
+  retry-exempt-status-codes: 400,401,403,404,422
+  script: |
+    await github.rest.repos.get({
+      owner: context.repo.owner,
+      repo: context.repo.repo
+    })
+
+Common non-retryable status codes:
+- 400 bad request
+- 401 unauthorized
+- 403 forbidden/rate limited
+- 404 not found
+- 422 validation failed
+
+============================================================
+
+11. Job summaries
+
+github-script can write Markdown to the workflow run summary:
+
+await core.summary
+  .addHeading('Repository summary')
+  .addTable([
+    [{data: 'Field', header: true}, {data: 'Value', header: true}],
+    ['Repository', `${context.repo.owner}/${context.repo.repo}`]
+  ])
+  .write()
+
+============================================================
+
+12. Common exam points
+
+Know these for GH-200:
+- github-script is a JavaScript action used inside a workflow step
+- it is good for GitHub API automation, not normal shell work
+- github is the authenticated API client
+- context describes the workflow run and webhook payload
+- core provides workflow commands, outputs, logs, failures, and summaries
+- GITHUB_TOKEN is used by default
+- permissions should be explicitly scoped with least privilege
+- use github-token when a different token is required
+- return values become steps.<id>.outputs.result
+- result-encoding can be json or string
+- pass untrusted data through env, not direct expression interpolation in script
+- use github.rest.* for REST APIs
+- use github.graphql() for GraphQL APIs
+- use retries for transient API failures
+- use job/step if conditions so issue-only code does not run on non-issue events
+- v9 runs on the current Node runtime used by the action and provides getOctokit
+  directly in the script context

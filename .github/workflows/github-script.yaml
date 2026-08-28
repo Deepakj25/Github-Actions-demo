@@ -1,20 +1,237 @@
 name: GitHub Script
+
 on:
-    workflow_dispatch:
+  # Manual trigger for practicing github-script examples from the Actions UI.
+  workflow_dispatch:
+    inputs:
+      # Optional issue number used by the guarded write examples.
+      issue_number:
+        description: Issue number for the optional write examples
+        required: false
+        type: string
+      # Defaults to true so manual runs do not create comments or labels accidentally.
+      dry_run:
+        description: Keep write examples in preview mode
+        required: true
+        default: true
+        type: boolean
+      # Label used only when dry_run is false and an issue number is available.
+      label_name:
+        description: Label to add when dry_run is false and issue_number is set
+        required: false
+        default: github-script-practice
+        type: string
+  # Issue trigger demonstrates using context.payload.issue and context.issue.
+  issues:
+    types:
+      - opened
+
+# Least-privilege permissions for this workflow:
+# contents: read for repository metadata, issues: write for optional comments/labels.
+permissions:
+  contents: read
+  issues: write
 
 jobs:
-    github-script:
-        runs-on: ubuntu-latest
-        steps:
-          - name: Get repository information
-            uses: actions/github-script@v9
-            with:
-                script: |
-                    const repo = await github.rest.repos.get({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo
-                    });
+  # Read-only examples: context object, REST API, retries, return result, named output.
+  read-context-and-repo:
+    name: Read context and repository data
+    runs-on: ubuntu-latest
 
-                    console.log(`Repository: ${repo.data.full_name}`);
-                    console.log(`Description: ${repo.data.description}`);
-                    console.log(`Stars: ${repo.data.stargazers_count}`);
+    steps:
+      # context contains workflow metadata and webhook payload information.
+      - name: Print selected context values
+        uses: actions/github-script@v9
+        with:
+          script: |
+            core.info(`Actor: ${context.actor}`)
+            core.info(`Event: ${context.eventName}`)
+            core.info(`Repository: ${context.repo.owner}/${context.repo.repo}`)
+            core.info(`Ref: ${context.ref}`)
+            core.info(`SHA: ${context.sha}`)
+
+      # github.rest is the authenticated Octokit REST API client.
+      # retries handles temporary API or network failures.
+      - name: Read repository with REST API
+        id: repo
+        uses: actions/github-script@v9
+        with:
+          retries: 3
+          result-encoding: string
+          script: |
+            const repo = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            })
+
+            core.info(`Full name: ${repo.data.full_name}`)
+            core.info(`Default branch: ${repo.data.default_branch}`)
+            core.info(`Visibility: ${repo.data.visibility}`)
+            core.info(`Stars: ${repo.data.stargazers_count}`)
+            core.setOutput('default_branch', repo.data.default_branch)
+
+            return repo.data.full_name
+
+      # A returned value is available as steps.<id>.outputs.result.
+      # core.setOutput creates additional named outputs.
+      - name: Show REST result output
+        run: |
+          echo "Repository from result output: ${{ steps.repo.outputs.result }}"
+          echo "Default branch from named output: ${{ steps.repo.outputs.default_branch }}"
+
+  # Examples for JSON result output, GraphQL, and Markdown job summary.
+  outputs-graphql-and-summary:
+    name: Outputs, GraphQL, and summary
+    runs-on: ubuntu-latest
+    needs:
+      - read-context-and-repo
+
+    steps:
+      # Default result encoding is JSON, so this object is returned as JSON text.
+      - name: Return JSON data from script
+        id: repo-json
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const repo = await github.rest.repos.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            })
+
+            return {
+              fullName: repo.data.full_name,
+              private: repo.data.private,
+              defaultBranch: repo.data.default_branch
+            }
+
+      # github.graphql runs GraphQL queries with variables.
+      - name: Query repository with GraphQL
+        id: repo-graphql
+        uses: actions/github-script@v9
+        with:
+          result-encoding: string
+          script: |
+            const data = await github.graphql(`
+              query($owner: String!, $repo: String!) {
+                repository(owner: $owner, name: $repo) {
+                  nameWithOwner
+                  isPrivate
+                  defaultBranchRef {
+                    name
+                  }
+                }
+              }
+            `, {
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            })
+
+            return data.repository.defaultBranchRef?.name || ''
+
+      # Pass step output into JavaScript through env to avoid expression injection.
+      # core.summary writes Markdown to the workflow run summary page.
+      - name: Write job summary
+        uses: actions/github-script@v9
+        env:
+          REPO_JSON: ${{ steps.repo-json.outputs.result }}
+          DEFAULT_BRANCH_FROM_GRAPHQL: ${{ steps.repo-graphql.outputs.result }}
+        with:
+          script: |
+            const repo = JSON.parse(process.env.REPO_JSON)
+
+            await core.summary
+              .addHeading('GitHub Script practice')
+              .addTable([
+                [
+                  {data: 'Field', header: true},
+                  {data: 'Value', header: true}
+                ],
+                ['Repository', repo.fullName],
+                ['Private', String(repo.private)],
+                ['Default branch from REST', repo.defaultBranch],
+                ['Default branch from GraphQL', process.env.DEFAULT_BRANCH_FROM_GRAPHQL]
+              ])
+              .write()
+
+  # Write examples are guarded so the workflow can be practiced safely.
+  guarded-issue-automation:
+    name: Guarded issue automation
+    runs-on: ubuntu-latest
+
+    steps:
+      # Use issue event payload when available; otherwise use workflow_dispatch input.
+      - name: Choose issue number safely
+        id: issue
+        uses: actions/github-script@v9
+        env:
+          WORKFLOW_INPUT_ISSUE: ${{ inputs.issue_number }}
+        with:
+          result-encoding: string
+          script: |
+            const issueFromEvent = context.payload.issue?.number
+            const issueFromInput = process.env.WORKFLOW_INPUT_ISSUE
+            const issueNumber = issueFromEvent || issueFromInput
+
+            if (!issueNumber) {
+              core.warning('No issue number available. Write examples will be skipped.')
+              return ''
+            }
+
+            if (!Number.isInteger(Number(issueNumber)) || Number(issueNumber) < 1) {
+              core.setFailed(`Invalid issue number: ${issueNumber}`)
+              return ''
+            }
+
+            return String(issueNumber)
+
+      # This step shows what would happen without writing to GitHub.
+      - name: Preview issue write operation
+        if: steps.issue.outputs.result != ''
+        uses: actions/github-script@v9
+        env:
+          ISSUE_NUMBER: ${{ steps.issue.outputs.result }}
+          LABEL_NAME: ${{ inputs.label_name }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        with:
+          script: |
+            const issueNumber = Number(process.env.ISSUE_NUMBER)
+            const labelName = process.env.LABEL_NAME || 'github-script-practice'
+            const dryRun = process.env.DRY_RUN !== 'false'
+
+            core.info(`Issue number: ${issueNumber}`)
+            core.info(`Label name: ${labelName}`)
+            core.info(`Dry run: ${dryRun}`)
+
+            if (dryRun) {
+              core.notice('Dry run enabled. No comment or label will be created.')
+            }
+
+      # This step writes to GitHub only when an issue exists and dry_run is false.
+      # github-token is optional here because GITHUB_TOKEN is already the default.
+      - name: Comment and label issue
+        if: steps.issue.outputs.result != '' && inputs.dry_run == false
+        uses: actions/github-script@v9
+        env:
+          ISSUE_NUMBER: ${{ steps.issue.outputs.result }}
+          LABEL_NAME: ${{ inputs.label_name }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          retries: 3
+          retry-exempt-status-codes: 400,401,403,404,422
+          script: |
+            const issueNumber = Number(process.env.ISSUE_NUMBER)
+            const labelName = process.env.LABEL_NAME || 'github-script-practice'
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: 'This comment was created by actions/github-script.'
+            })
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              labels: [labelName]
+            })
