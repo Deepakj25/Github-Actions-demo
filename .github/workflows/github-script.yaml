@@ -1,0 +1,20 @@
+name: GitHub Script
+on:
+    workflow_dispatch:
+
+jobs:
+    github-script:
+        runs-on: ubuntu-latest
+        steps:
+          - name: Get repository information
+            uses: actions/github-script@v9
+            with:
+                script: |
+                    const repo = await github.rest.repos.get({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo
+                    });
+
+                    console.log(`Repository: ${repo.data.full_name}`);
+                    console.log(`Description: ${repo.data.description}`);
+                    console.log(`Stars: ${repo.data.stargazers_count}`);

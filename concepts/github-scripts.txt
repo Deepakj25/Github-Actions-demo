@@ -1,0 +1,34 @@
+//github scripts
+
+GitHub Script
+    ↓
+Use small JavaScript snippets
+    ↓
+Interact with GitHub API
+    ↓
+Automate GitHub tasks
+
+#############
+You can also interact with GitHub's API using curl, for example:
+
+curl \
+  -H "Authorization: Bearer $GITHUB_TOKEN" \
+  https://api.github.com/repos/OWNER/REPO
+
+That works, but it means you handle the HTTP/API details yourself.
+
+actions/github-script gives you an authenticated GitHub API client directly:
+
+Need ordinary shell operation?
+        ↓
+run: bash / PowerShell
+
+Need to call GitHub API?
+        ↓
+github-script
+
+three object
+github  → talk to GitHub APIs
+context → information about this workflow/event
+core    → Actions utilities such as logging/output
+
