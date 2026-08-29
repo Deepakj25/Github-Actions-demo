@@ -1,0 +1,818 @@
+// ============================================================
+// SECURITY IN GITHUB ACTIONS - GH-200 NOTES
+// ============================================================
+
+Security in GitHub Actions is mainly about controlling:
+
+- who can trigger a workflow
+- what code runs
+- what credentials are available
+- what permissions the workflow token has
+- which actions and reusable workflows are trusted
+- which runner executes the job
+- how build outputs can be verified
+
+
+// Official GitHub Docs To Know For GH-200
+
+- Security for GitHub Actions
+- Secure use reference
+- GITHUB_TOKEN
+- Secrets reference
+- OpenID Connect reference
+- Workflow syntax: permissions
+- Self-hosted runners reference
+- Artifact attestations
+
+
+// ============================================================
+// 01. OIDC AND CLOUD DEPLOYMENT SECURITY
+// ============================================================
+
+A traditional Azure deployment often looks like:
+
+GitHub Actions
+     ↓
+AZURE_CLIENT_SECRET
+     ↓
+Azure
+
+You store a long-lived Azure credential in GitHub Secrets. It can be compromised if the repository, workflow, runner, or logs leak the secret.
+
+
+The problem OIDC solves:
+
+OIDC is a way for Actions workflows to access Azure without storing long-lived Azure credentials as GitHub secrets.
+
+GitHub Actions
+     ↓
+Short-lived OIDC identity token
+     ↓
+Azure trusts GitHub
+     ↓
+Azure issues short-lived access token
+     ↓
+Azure resource
+
+
+What is actually happening?
+
+GitHub acts as an identity provider.
+The workflow asks GitHub for an OIDC token.
+Azure is configured to trust GitHub's OIDC issuer and accept tokens that satisfy the configured trust conditions.
+Then Azure exchanges that GitHub identity for an Azure access token.
+
+
+To request the OIDC token, the workflow/job needs:
+
+permissions:
+  id-token: write
+
+
+This name is slightly confusing.
+
+id-token: write does not mean:
+
+"The workflow can write to Azure."
+
+It means:
+
+"The workflow is allowed to request an OIDC ID token from GitHub."
+
+
+GitHub explicitly warns that you should configure at least one trust condition so untrusted repositories/workflows cannot obtain cloud access tokens.
+
+So the security model is:
+
+GitHub workflow
+     ↓
+OIDC token
+     ↓
+Azure trust policy
+     ↓
+Is this EXACT workflow/repository/ref/environment trusted?
+     ↓
+Yes -> Azure access token
+No  -> access denied
+
+
+OIDC = federated identity between GitHub Actions and a cloud provider.
+It removes the need for long-lived cloud credentials stored in GitHub Secrets.
+id-token: write allows the workflow to request the OIDC token.
+Azure validates the token against a trust/federated credential policy.
+The trust policy should restrict which repositories/workflows/refs/environments can obtain cloud access.
+
+
+GH-200 exam angle:
+
+Prefer OIDC over long-lived cloud secrets for cloud deployments.
+Use trust conditions such as repository, branch/tag ref, workflow, environment, and audience.
+If environments are part of the deployment model, use environment protection rules.
+id-token: write only allows requesting the OIDC token; it does not grant cloud permissions by itself.
+
+
+Short YAML example:
+
+name: deploy
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to cloud using OIDC
+        run: echo "Use the cloud provider login action here"
+
+
+// ============================================================
+// 02. GITHUB_TOKEN
+// ============================================================
+
+The new security concept is the token lifecycle and trust model.
+
+For each workflow job, GitHub provides a temporary GITHUB_TOKEN. It is scoped to the repository and expires when the job finishes. GitHub recommends using it instead of creating a personal access token (PAT) when the workflow only needs to interact with the repository running the workflow.
+
+
+The important security comparison is:
+
+GITHUB_TOKEN
+-> short-lived
+-> automatically generated
+-> repository-scoped
+-> permissions can be reduced
+
+versus a PAT:
+
+PAT
+-> user-associated credential
+-> can have broader access
+-> persists until expiration/revocation
+-> higher blast radius if exposed
+
+
+So the rule is:
+
+Prefer GITHUB_TOKEN for GitHub Actions automation when it provides the required access.
+
+A PAT or GitHub App is appropriate when the workflow needs access that GITHUB_TOKEN cannot provide, for example certain operations involving other repositories or organizational resources.
+
+
+GITHUB_TOKEN is automatically provided to the workflow.
+It is temporary and repository-scoped.
+permissions: controls what it can do.
+Prefer it over a PAT when it provides the required access.
+Use a PAT/GitHub App when the workflow genuinely needs access beyond what GITHUB_TOKEN can provide.
+
+
+Important:
+
+The token is available through the github.token context even if you do not explicitly pass it to an action.
+Any action in the job can potentially access it.
+This is why third-party action trust and token permissions matter.
+
+
+// ============================================================
+// 03. LEAST PRIVILEGE PERMISSIONS
+// ============================================================
+
+Use the permissions key to reduce what GITHUB_TOKEN can do.
+
+You can set permissions at workflow level:
+
+permissions:
+  contents: read
+
+
+Or at job level:
+
+jobs:
+  build:
+    permissions:
+      contents: read
+      packages: write
+
+
+If you specify any permission, unspecified permissions are set to none.
+
+
+Practical least privilege examples:
+
+Read repository contents only:
+
+permissions:
+  contents: read
+
+
+Disable all token permissions:
+
+permissions: {}
+
+
+Needed for OIDC:
+
+permissions:
+  id-token: write
+  contents: read
+
+
+Needed for artifact attestations:
+
+permissions:
+  attestations: write
+  id-token: write
+  contents: read
+
+
+Short YAML example:
+
+name: least-privilege
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test
+
+
+GH-200 exam angle:
+
+Avoid permissions: write-all unless there is a strong reason.
+Prefer explicit minimal permissions.
+Remember that pull_request_target can receive read/write repository permission even when triggered from a public fork, so it must be handled carefully.
+
+
+// ============================================================
+// 04. SECRETS
+// ============================================================
+
+Use GitHub Secrets for sensitive values such as tokens, passwords, private keys, and cloud credentials.
+
+
+Secret scopes:
+
+Repository secret
+-> available to workflows in one repository
+
+Environment secret
+-> available only to jobs that reference that environment
+
+Organization secret
+-> available to selected repositories in the organization
+
+
+Secret precedence:
+
+If the same secret name exists at multiple levels, the most specific one wins.
+
+Environment secret > Repository secret > Organization secret
+
+
+Important limitations:
+
+Secrets are not passed to workflows triggered from forks, except GITHUB_TOKEN with limited permissions.
+Secrets are not automatically passed to reusable workflows unless explicitly passed.
+Secrets are not available to Dependabot-triggered workflows unless stored as Dependabot secrets.
+GitHub masks many secret values in logs, but masking is not a guarantee for every transformation of a secret.
+
+
+Good practices:
+
+Use least privilege credentials.
+Do not print secrets.
+Do not store structured blobs if avoidable, because redaction can be less reliable.
+Use environment secrets for deployment credentials.
+Use OIDC instead of long-lived cloud credentials when possible.
+Rotate secrets if exposure is suspected.
+
+
+Short YAML example:
+
+name: use-secret
+
+on: workflow_dispatch
+
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Use secret without printing it
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: ./deploy.sh
+
+
+// ============================================================
+// 05. ENVIRONMENT PROTECTION RULES
+// ============================================================
+
+Environments can protect deployments and environment secrets.
+
+
+Common protection rules:
+
+- required reviewers
+- wait timers
+- deployment branches and tags
+- environment-specific secrets
+
+
+Mental model:
+
+Workflow job
+     ↓
+references environment
+     ↓
+environment protection rules must pass
+     ↓
+environment secrets become available
+     ↓
+deployment can continue
+
+
+GH-200 exam angle:
+
+Use environments to protect production deployments.
+Use required reviewers before production secrets are exposed.
+Combine environments with OIDC trust conditions for stronger deployment control.
+
+
+Short YAML example:
+
+name: production-deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: ./deploy.sh
+
+
+// ============================================================
+// 06. SCRIPT INJECTION
+// ============================================================
+
+Example risk:
+
+- name: Greet
+  run: echo "Hello ${{ github.event.pull_request.title }}"
+
+
+A pull request title is attacker-controlled input. Directly inserting untrusted data into a shell command can allow the data to alter the command being executed.
+
+
+The safer pattern is to pass the value through env:
+
+- name: Greet
+  env:
+    PR_TITLE: ${{ github.event.pull_request.title }}
+  run: echo "Hello $PR_TITLE"
+
+
+Mental model:
+
+Untrusted context
+       ↓
+      env
+       ↓
+shell variable
+       ↓
+command
+
+
+PR titles, branch names, PR bodies, issue content, commit messages, issue comments, and other user-controlled fields can be untrusted.
+Direct interpolation into run: can create injection risk.
+Prefer passing untrusted values through env.
+
+
+Also prefer JavaScript/composite actions or scripts that treat inputs as arguments instead of building shell commands with raw expressions.
+
+
+Short YAML example:
+
+- name: Safer untrusted input handling
+  env:
+    PR_TITLE: ${{ github.event.pull_request.title }}
+  run: |
+    echo "Pull request title:"
+    printf '%s\n' "$PR_TITLE"
+
+
+// ============================================================
+// 07. UNTRUSTED CONTEXTS
+// ============================================================
+
+GitHub contexts provide workflow and event data.
+
+Some context values may contain attacker-controlled input.
+
+
+Examples:
+
+- github.event.pull_request.title
+- github.event.pull_request.body
+- github.head_ref
+- issue title/body
+- comment body
+- commit message
+
+
+Do not treat context data as trusted just because it comes from the github context.
+
+Avoid printing the entire github context because it can include sensitive values such as github.token.
+
+
+// ============================================================
+// 08. pull_request VS pull_request_target
+// ============================================================
+
+pull_request:
+
+- runs in the context of the merge commit
+- safer for testing untrusted PR code
+- secrets are normally not available to workflows from forks
+- token permissions are limited for forked PRs
+
+
+pull_request_target:
+
+- runs in the context of the base repository
+- can access secrets and a more privileged GITHUB_TOKEN
+- useful for trusted automation such as labeling or commenting
+- dangerous if it checks out or executes untrusted PR code
+
+
+Rule:
+
+Do not use pull_request_target to build, test, or execute code from an untrusted pull request.
+
+
+Safer pattern:
+
+Use pull_request for untrusted code testing.
+Use pull_request_target only for operations that need base repository permissions and do not execute PR code.
+For privilege separation, workflow_run can be used carefully, but artifacts from untrusted workflows must still be treated as untrusted.
+
+
+Short YAML examples:
+
+Safer for testing untrusted PR code:
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test
+
+
+Use pull_request_target only for trusted metadata operations:
+
+on:
+  pull_request_target:
+    types:
+      - opened
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Do not checkout and run untrusted PR code here"
+
+
+// ============================================================
+// 09. THIRD-PARTY ACTIONS AND SHA PINNING
+// ============================================================
+
+// suggested pinning
+
+Third-party action
+-> SHA pinning is a major security best practice
+
+Reusable workflow
+-> branch/tag/SHA are all possible refs
+-> organization policy may treat them differently
+
+
+Practical rule:
+
+@main
+-> highest change risk
+
+@v4
+-> convenient, but mutable
+
+@full SHA
+-> strongest immutability/reproducibility
+
+
+GitHub says pinning to a full-length commit SHA is the only way to use an action as an immutable release.
+
+
+Good practices:
+
+Pin third-party actions to a full-length commit SHA.
+Audit the action's source code before using it.
+Prefer trusted creators and well-maintained actions.
+Use organization/repository policies to restrict which actions and reusable workflows can run.
+Use Dependabot to keep action versions updated when appropriate.
+
+
+Policies can allow GitHub-authored actions, verified Marketplace actions, selected organizations/repos, or specific actions/workflows.
+
+
+Short YAML example:
+
+steps:
+  - name: Mutable tag example
+    uses: actions/checkout@v4
+
+  - name: Full SHA pinning example
+    uses: actions/checkout@<full-length-commit-sha>
+
+
+// ============================================================
+// 10. MARKETPLACE SECURITY
+// ============================================================
+
+GitHub's documentation says the Verified creator badge means GitHub has verified the identity of the action's creator as a partner organization.
+
+So a Verified Creator badge is not a replacement for SHA pinning.
+
+GitHub explicitly recommends auditing the action's source code and recommends full-SHA pinning for immutable usage.
+
+
+Marketplace security means you should evaluate the trustworthiness of actions before use.
+Verified Creator is a trust signal, not a security boundary.
+The action can still change if you use a mutable tag or branch.
+
+
+// ============================================================
+// 11. REUSABLE WORKFLOWS
+// ============================================================
+
+Reusable workflows are called with:
+
+uses: owner/repo/.github/workflows/workflow.yml@ref
+
+
+Security points:
+
+The called workflow can be pinned by branch, tag, or SHA.
+Secrets are not automatically inherited unless you use secrets: inherit or explicitly pass secrets.
+The caller controls the permissions available to the called workflow.
+Treat third-party reusable workflows like third-party actions.
+Pin external reusable workflows to a SHA when possible.
+
+
+GH-200 exam angle:
+
+Reusable workflows help standardize secure CI/CD patterns across repositories.
+But they still need controlled permissions, explicit secret handling, and trusted refs.
+
+
+Short YAML example:
+
+jobs:
+  call-security-workflow:
+    uses: org/security-workflows/.github/workflows/scan.yml@main
+    permissions:
+      contents: read
+      security-events: write
+    secrets:
+      SCANNER_TOKEN: ${{ secrets.SCANNER_TOKEN }}
+
+
+// ============================================================
+// 12. RUNNER SECURITY
+// ============================================================
+
+GitHub-hosted runners:
+
+- are managed by GitHub
+- run jobs on clean ephemeral virtual machines
+- are safer for untrusted code than persistent self-hosted runners
+
+
+Self-hosted runners:
+
+- are machines you manage
+- may not be clean for every job
+- can be persistently compromised by untrusted workflow code
+- should almost never be used for public repositories
+- should be isolated by runner groups and repository access controls
+
+
+Important:
+
+Anyone who can trigger a workflow that runs on a self-hosted runner may be able to interact with that machine, its filesystem, network, and credentials.
+
+
+Good practices:
+
+Use GitHub-hosted runners for public repositories and untrusted PRs.
+Restrict self-hosted runner access with runner groups.
+Use ephemeral or just-in-time runners when possible.
+Keep the runner application and host OS updated.
+Do not store unnecessary secrets or sensitive files on runner machines.
+Limit network access from runners to sensitive internal systems.
+
+
+// ============================================================
+// 13. ARTIFACTS, LOGS, AND CACHES
+// ============================================================
+
+Artifacts, logs, and caches can accidentally contain sensitive data.
+
+
+Retention:
+
+public repo: default retention is 90 days
+private repo: retention can be configured up to 400 days
+cache retention: default is 7 days
+
+
+Individual artifacts can have custom retention.
+
+Example:
+
+with:
+  retention-days: 5
+
+
+Retention changes apply to new artifacts/logs, not retroactively.
+
+
+Good practices:
+
+Do not upload secrets in artifacts.
+Do not cache credential files.
+Use short retention for sensitive build outputs.
+Review logs before sharing them.
+Remember that artifacts from untrusted workflows should be treated as untrusted input.
+
+
+Short YAML example:
+
+- name: Upload artifact with short retention
+  uses: actions/upload-artifact@v4
+  with:
+    name: build-output
+    path: dist/
+    retention-days: 5
+
+
+// ============================================================
+// 14. ARTIFACT ATTESTATIONS AND BUILD PROVENANCE
+// ============================================================
+
+Attestation = signed provenance/integrity information about that output.
+
+Provenance means information about the origin and build process of an artifact.
+
+
+For example:
+
+Artifact: myapp
+Repository: company/myapp
+Commit: abc123...
+Workflow: build.yml
+Environment: production
+
+
+Artifact
+-> the thing you built
+
+Attestation
+-> signed information about that thing's provenance/integrity
+
+
+actions/attest can generate attestations.
+attestations: write is required to generate them.
+id-token: write is also involved in generating provenance.
+gh attestation verify verifies the attestation.
+
+
+GH-200 exam angle:
+
+Artifact attestations help prove where a build artifact came from.
+They support supply chain security by connecting an artifact to repository, commit, and workflow provenance.
+
+
+Short YAML example:
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make build
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ./dist/myapp
+
+
+// ============================================================
+// 15. CODE SCANNING AND DEPENDENCY SECURITY
+// ============================================================
+
+GitHub Actions can be used with GitHub security features.
+
+
+Important features:
+
+- CodeQL code scanning
+- Dependabot alerts
+- Dependabot security updates
+- dependency review
+- secret scanning
+- OpenSSF Scorecards
+
+
+GH-200 exam angle:
+
+Code scanning finds vulnerabilities in code.
+Secret scanning detects committed secrets.
+Dependabot alerts identify vulnerable dependencies.
+Dependency review helps detect risky dependency changes in pull requests.
+Scorecards can flag risky supply chain practices such as unpinned actions and broad token permissions.
+
+
+// ============================================================
+// 16. BRANCH PROTECTION AND RULESETS
+// ============================================================
+
+Branch protection and repository rulesets help control what can be merged or deployed.
+
+
+Common controls:
+
+- required pull request reviews
+- required status checks
+- require branches to be up to date
+- restrict who can push
+- require signed commits
+- require deployments to pass before merging
+
+
+GH-200 exam angle:
+
+Use branch protection or rulesets with GitHub Actions checks to enforce secure development workflows.
+Required status checks prevent merging code unless required CI/security jobs pass.
+
+
+// ============================================================
+// 17. SECURE WORKFLOW CHECKLIST
+// ============================================================
+
+- Use least privilege permissions for GITHUB_TOKEN.
+- Prefer GITHUB_TOKEN over PATs when possible.
+- Prefer OIDC over long-lived cloud credentials.
+- Store sensitive values in secrets, not plaintext YAML.
+- Use environment secrets and required reviewers for production.
+- Avoid script injection by treating contexts as untrusted input.
+- Be very careful with pull_request_target.
+- Pin third-party actions and reusable workflows to full-length SHAs when possible.
+- Audit third-party actions before use.
+- Use GitHub-hosted runners for untrusted code.
+- Isolate and harden self-hosted runners.
+- Avoid putting secrets in logs, artifacts, or caches.
+- Use artifact attestations for build provenance.
+- Use code scanning, secret scanning, Dependabot, and dependency review.
+- Enforce important checks with branch protection or rulesets.
