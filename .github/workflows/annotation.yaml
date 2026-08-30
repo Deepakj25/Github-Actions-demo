@@ -17,3 +17,11 @@ jobs:
             echo "Line 1"
             echo "Line 2"
             echo "::endgroup::"
+
+        - name: Create summary
+          run: |
+            echo "# Workflow Summary" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "## Status" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Build: Passed" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Environment: Dev" >> "$GITHUB_STEP_SUMMARY"

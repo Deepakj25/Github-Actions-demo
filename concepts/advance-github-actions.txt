@@ -13,3 +13,5 @@ The UI can collapse that section, which is useful when a workflow produces a lot
 
 3. masking a value
 echo "::add-mask::$TOKEN"
+
+4. GITHUB_STEP_SUMMARY
