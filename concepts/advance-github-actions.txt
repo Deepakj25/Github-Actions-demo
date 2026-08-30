@@ -15,3 +15,48 @@ The UI can collapse that section, which is useful when a workflow produces a lot
 echo "::add-mask::$TOKEN"
 
 4. GITHUB_STEP_SUMMARY
+is used to create formatted Markdown content displayed in the workflow run summary.
+GITHUB_STEP_SUMMARY is an environment variable containing the path to a special file where a workflow step can write Markdown content.
+
+ex.
+- name: Create summary
+  run: |
+    echo "# Workflow Summary" >> "$GITHUB_STEP_SUMMARY"
+    echo "" >> "$GITHUB_STEP_SUMMARY"
+    echo "## Status" >> "$GITHUB_STEP_SUMMARY"
+    echo "- Build: Passed" >> "$GITHUB_STEP_SUMMARY"
+    echo "- Environment: Dev" >> "$GITHUB_STEP_SUMMARY"
+
+output in Workflow summary.
+Workflow Summary
+
+Status
+Build: Passed
+Environment: Dev
+
+5. GITHUB_PATH : Add a directory to PATH for subsequent steps in the same job.
+Step 1
+  ↓
+write directory → GITHUB_PATH
+  ↓
+PATH updated for subsequent steps
+  ↓
+Step 2 can use the command
+
+Step 1 itself
+→ does NOT see the PATH change
+
+6. anchors and alias
+YAML anchors let you define something once and reuse it within the same YAML file
+
+You define an anchor with &name:
+env: &test_env
+  NODE_ENV: test
+  LOG_LEVEL: info
+
+You reuse it with:
+env: *test_env
+
+Anchors are a YAML mechanism for avoiding duplicated configuration
+
+6. Service containers
