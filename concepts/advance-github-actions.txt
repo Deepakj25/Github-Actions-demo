@@ -1,0 +1,15 @@
+1. Annotation
+echo "::error::This is an error message"
+This creates an error annotation in the workflow UI.
+
+echo "::warning::This is a warning"
+echo "::notice::This is informational"
+
+2. Log Grouping
+echo "::group::Build"
+npm run build
+echo "::endgroup::"
+The UI can collapse that section, which is useful when a workflow produces a lot of output.
+
+3. masking a value
+echo "::add-mask::$TOKEN"

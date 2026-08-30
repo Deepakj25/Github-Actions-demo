@@ -1,0 +1,19 @@
+name: Annotation workflow
+on:
+    workflow_dispatch:
+jobs:
+    annotation:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Workflow commands demo
+          run: |
+            echo "::notice::Build started"
+            echo "::warning::This is a test warning"
+            echo "::error::This is a test error"
+
+        - name: Group logs
+          run: |
+            echo "::group::Build details"
+            echo "Line 1"
+            echo "Line 2"
+            echo "::endgroup::"

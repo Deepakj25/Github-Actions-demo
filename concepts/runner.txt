@@ -1,4 +1,6 @@
-# GitHub Actions Runner
+============================================================
+GITHUB ACTIONS RUNNERS - GH-200 NOTES
+============================================================
 
 A runner is the execution environment where a GitHub Actions job runs.
 
@@ -8,116 +10,242 @@ Runner = where it executes
 The runner application receives a job from GitHub Actions and runs the job steps.
 
 
-------------------------------------------------------------
+Runner security and reliability mainly depend on:
 
-## 1. Job and Runner Relationship
+- which runner type is used
+- which labels or groups select the runner
+- whether the runner is fresh or persistent
+- what tools and network access exist on the runner
+- whether untrusted code can execute on that runner
+
+
+Official GitHub Docs To Know For GH-200
+
+- GitHub-hosted runners
+- Self-hosted runners
+- Choosing the runner for a job
+- Using self-hosted runners in a workflow
+- Runner groups
+- Larger runners
+- Runner scale sets
+- Actions Runner Controller
+
+
+============================================================
+01. JOB AND RUNNER RELATIONSHIP
+============================================================
 
 Each job runs on a runner environment.
 
+
 Important points:
+
 - All steps in the same job run on the same runner.
 - Steps in the same job share the same filesystem/workspace.
 - Different jobs do not automatically share files or workspace.
 - To pass files between jobs, use artifacts, cache, or external storage.
 
+
 Example:
 
 Workflow
-   │
-   ├── Build job ──► Runner A
-   │                   ├── Step 1
-   │                   ├── Step 2
-   │                   └── Step 3
-   │
-   └── Test job ───► Runner B
-                       ├── Step 1
-                       └── Step 2
+   |
+   |-- Build job --> Runner A
+   |                   |-- Step 1
+   |                   |-- Step 2
+   |                   |-- Step 3
+   |
+   |-- Test job  --> Runner B
+                       |-- Step 1
+                       |-- Step 2
 
 
-------------------------------------------------------------
+Mental model:
 
-## 2. runs-on
+A workflow contains jobs.
+A job is assigned to one matching runner.
+All steps in that job execute on that same runner.
+
+
+Short YAML example:
+
+name: job-runner-example
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Build runs on one runner"
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Test runs on another runner"
+
+
+GH-200 exam angle:
+
+Jobs are isolated from each other by default.
+Steps inside a job share the same runner workspace.
+Use artifacts when one job needs files produced by another job.
+
+
+============================================================
+02. runs-on
+============================================================
 
 `runs-on` specifies the runner requirements for a job.
+
 
 Example:
 
 build:
   runs-on: ubuntu-latest
 
+
 Meaning:
 
 Schedule this job on an available runner that matches `ubuntu-latest`.
 
+
 Common GitHub-hosted runner labels:
+
 - ubuntu-latest
 - windows-latest
 - macos-latest
 
 
-------------------------------------------------------------
+Short YAML example:
 
-## 3. Types of Runners
+jobs:
+  linux-build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Running on Linux"
+
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - run: echo "Running on Windows"
+
+
+GH-200 exam angle:
+
+`runs-on` is job-level configuration.
+It decides where the job runs, not what commands the job executes.
+
+
+============================================================
+03. TYPES OF RUNNERS
+============================================================
 
 GitHub Actions has two main runner types:
+
 - GitHub-hosted runners
 - Self-hosted runners
 
+
                     GitHub Actions
-                         │
+                         |
                   Job needs runner
-                         │
-              ┌──────────┴──────────┐
-              ▼                     ▼
+                         |
+              +----------+----------+
+              |                     |
        GitHub-hosted           Self-hosted
           runner                 runner
-              │                     │
+              |                     |
        GitHub manages           You manage
        infrastructure           infrastructure
 
 
-------------------------------------------------------------
+High-level difference:
 
-## 4. GitHub-Hosted Runners
+GitHub-hosted runner
+-> GitHub manages the machine
+
+Self-hosted runner
+-> you manage the machine
+
+
+GH-200 exam angle:
+
+Use GitHub-hosted runners when you want GitHub-managed infrastructure.
+Use self-hosted runners when you need custom hardware, custom software, private network access, or special compliance/control requirements.
+
+
+============================================================
+04. GITHUB-HOSTED RUNNERS
+============================================================
 
 GitHub-hosted runners are managed by GitHub.
 
+
 You do not manage:
+
 - OS patching
 - runner application maintenance
 - machine lifecycle
 - base software configuration
 
+
 This makes GitHub-hosted runners convenient for normal CI workloads.
 
 Standard GitHub-hosted runners are ephemeral. Each job starts with a clean environment.
 
+
 Flow:
 
 Job eligible
-    ↓
+    |
 Fresh runner environment
-    ↓
+    |
 Execute job
-    ↓
+    |
 Job completes
-    ↓
+    |
 Environment discarded
 
 
-------------------------------------------------------------
+Important:
 
-## 5. Self-Hosted Runners
+GitHub-hosted runner images include many preinstalled tools, but installed software and versions can change when GitHub updates the images.
+
+
+Short YAML example:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: npm test
+
+
+GH-200 exam angle:
+
+GitHub-hosted runners are the simpler default option.
+They are a good fit for public repositories and untrusted pull request code because each job uses a fresh environment.
+
+
+============================================================
+05. SELF-HOSTED RUNNERS
+============================================================
 
 A self-hosted runner is a machine that you manage and connect to GitHub Actions.
 
+
 It can run on:
+
 - VM
 - physical server
 - cloud infrastructure
 - container/Kubernetes-based infrastructure
 
+
 You are responsible for:
+
 - infrastructure
 - OS maintenance
 - installed tools
@@ -126,89 +254,193 @@ You are responsible for:
 - security
 - runner lifecycle/cleanup
 
+
 Traditional self-hosted runners can remain available after a job completes and receive another job.
 
 This creates a security and cleanup concern:
 
 Files or state left behind by Job A could affect Job B if cleanup/isolation is not handled properly.
 
+
 For production CI/CD, organizations can design ephemeral self-hosted runners:
 
 Job queued
-    ↓
+    |
 Create/register runner
-    ↓
+    |
 Execute job
-    ↓
+    |
 Deregister/destroy runner
 
-This gives self-hosted control while improving isolation.
+
+Short YAML example:
+
+jobs:
+  build-on-self-hosted:
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - uses: actions/checkout@v6
+      - run: ./build.sh
 
 
-------------------------------------------------------------
+GH-200 exam angle:
 
-## 6. Workspace and Checkout
+Self-hosted runners provide control, but you own the security risk.
+Be very careful running untrusted code on self-hosted runners.
+GitHub recommends using self-hosted runners with private repositories, because public repository pull requests can run dangerous code on the runner machine.
+
+
+============================================================
+06. RUNNER SECURITY
+============================================================
+
+Runner security is important because workflow code executes directly on the runner environment.
+
+
+Self-hosted runner risks:
+
+- persistent files from previous jobs
+- access to local credentials or files
+- access to internal networks
+- compromised runner host
+- secrets or GITHUB_TOKEN exposure
+- one repository affecting another if runner access is too broad
+
+
+Good practices:
+
+- Use GitHub-hosted runners for untrusted code.
+- Avoid self-hosted runners for public repositories.
+- Use runner groups to restrict which repositories can use sensitive runners.
+- Keep the runner application and operating system updated.
+- Prefer ephemeral or just-in-time runners when possible.
+- Avoid storing sensitive files on runner machines.
+- Limit network access from runners to internal systems.
+
+
+GH-200 exam angle:
+
+GitHub-hosted runners are clean and ephemeral.
+Self-hosted runners may be persistent and can be compromised by untrusted workflow code.
+Runner groups help create access boundaries around sensitive runners.
+
+
+============================================================
+07. WORKSPACE AND CHECKOUT
+============================================================
 
 The job's working area is available through:
 
 GITHUB_WORKSPACE
 
+
 A fresh runner does not automatically contain your repository code.
 
 When repository files are required, use:
 
-- uses: actions/checkout@v4
+- uses: actions/checkout@v6
+
 
 `actions/checkout` places the repository contents into the workspace.
 
 Checkout is not required if the job does not need repository files.
+
 
 Important:
 
 Each job gets its own runner/workspace, so if multiple jobs need repository files, each job normally needs its own checkout step.
 
 
-------------------------------------------------------------
+Short YAML example:
 
-## 7. Labels
+jobs:
+  no-checkout-needed:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "This job does not need repository files"
+
+  checkout-needed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - run: ls
+
+
+GH-200 exam angle:
+
+`runs-on` gives you a machine.
+`actions/checkout` gives you the repository files.
+They solve different problems.
+
+
+============================================================
+08. LABELS
+============================================================
 
 Labels are used to route jobs to matching runners.
 
 Self-hosted runners can have default labels and custom labels.
 
+
 When you register a normal self-hosted runner, GitHub automatically assigns default labels such as:
+
 - self-hosted
 - linux, windows, or macOS
 - x64, ARM, or ARM64
+
 
 Example:
 
 runs-on: [self-hosted, linux, x64]
 
+
 This requires a runner that matches all listed labels.
 
+
 Custom labels are useful for routing jobs to runners with specific capabilities:
+
 - gpu
 - docker
 - large-memory
 - internal-network
 
+
 Example:
 
 runs-on: [self-hosted, linux, gpu]
 
+
 Important:
 
 Labels are routing metadata. They are not proof that the machine actually has that OS, architecture, or capability.
+Labels are case-insensitive.
+When using an array of labels, the runner must match all labels.
 
 
-------------------------------------------------------------
+Short YAML example:
 
-## 8. Disabling Default Labels
+jobs:
+  gpu-test:
+    runs-on: [self-hosted, linux, x64, gpu]
+    steps:
+      - run: nvidia-smi
+
+
+GH-200 exam angle:
+
+Labels select runner capabilities.
+All labels in the `runs-on` array must match.
+For self-hosted runners, GitHub recommends starting the label array with `self-hosted`.
+
+
+============================================================
+09. DISABLING DEFAULT LABELS
+============================================================
 
 When configuring a self-hosted runner, you can disable default labels:
 
 ./config.sh --no-default-labels
+
 
 Why use this?
 
@@ -217,22 +449,38 @@ Usually when you want explicit control over runner routing instead of relying on
 If default labels are disabled, provide your own labels clearly. Otherwise, it becomes harder to understand which jobs can run on that runner.
 
 
-------------------------------------------------------------
+Important:
 
-## 9. Runner Groups
+Actions Runner Controller does not support the `self-hosted` label in the same way normal self-hosted runners do.
+Runner scale sets can have only one label.
+
+
+GH-200 exam angle:
+
+Default labels make routing easier.
+Disabling them gives more control, but increases the need for clear custom labeling.
+
+
+============================================================
+10. RUNNER GROUPS
+============================================================
 
 Labels select runners by capability.
 Runner groups control which repositories can use runners.
 
+
 Runner groups are useful for sensitive runners, such as:
+
 - production runners
 - internal-network runners
 - secure deployment runners
+
 
 Example:
 
 runs-on:
   group: Production-Runners
+
 
 Labels vs Runner Groups:
 
@@ -241,20 +489,55 @@ Labels vs Runner Groups:
 | Labels        | Select runner based on capability    | linux, gpu, docker       |
 | Runner groups | Control repository access to runners | Production, Secure       |
 
+
 If multiple runners match the requested labels/group, GitHub uses any available matching runner.
 
 If no matching runner is online and idle, the job remains queued.
 
+If the runner does not pick up an assigned job within 60 seconds, GitHub re-queues the job so another runner can accept it.
+
 If the job remains queued for more than 24 hours, it fails.
 
 
-------------------------------------------------------------
+Short YAML examples:
 
-## 10. Larger Runners
+Use a runner group:
+
+jobs:
+  deploy:
+    runs-on:
+      group: Production-Runners
+    steps:
+      - run: ./deploy.sh
+
+
+Use both group and labels:
+
+jobs:
+  deploy:
+    runs-on:
+      group: Production-Runners
+      labels: linux
+    steps:
+      - run: ./deploy.sh
+
+
+GH-200 exam angle:
+
+Labels answer: what kind of runner?
+Runner groups answer: which repositories are allowed to use the runner?
+Groups are a security boundary for larger runners and self-hosted runners.
+
+
+============================================================
+11. LARGER RUNNERS
+============================================================
 
 Larger runners are GitHub-hosted runners with more resources than standard GitHub-hosted runners.
 
+
 They can provide:
+
 - more CPU
 - more RAM
 - more disk
@@ -263,28 +546,55 @@ They can provide:
 - static IP ranges
 - Azure private networking
 
+
 Use larger runners for resource-heavy workloads or when you need GitHub-managed runners with more predictable networking.
 
 
-------------------------------------------------------------
+Important:
 
-## 11. Runner Scale Sets and ARC
+Larger runners are available for organizations and enterprises on supported GitHub plans.
+They are runner pools, not just one fixed machine.
+They can scale to support concurrent jobs based on configured limits.
+Static IP ranges are useful for firewall allowlists.
+macOS larger runners do not support static IP addresses.
+
+
+Short YAML example:
+
+jobs:
+  large-build:
+    runs-on: ubuntu-24.04-16core
+    steps:
+      - uses: actions/checkout@v6
+      - run: make build
+
+
+GH-200 exam angle:
+
+Use larger runners when standard runners do not have enough CPU/RAM/disk, or when you need GitHub-hosted runners with static IP/private networking features.
+
+
+============================================================
+12. RUNNER SCALE SETS AND ARC
+============================================================
 
 Runner scale set = group of homogeneous runners.
 
 Actions Runner Controller (ARC) is a Kubernetes operator that manages and autoscales self-hosted runners.
 
+
 Basic flow:
 
 Workflow job queued
-    ↓
+    |
 ARC sees demand
-    ↓
+    |
 Runner pod is created
-    ↓
+    |
 Job runs
-    ↓
+    |
 Runner pod is removed
+
 
 `runs-on` can target a runner scale set name.
 
@@ -292,18 +602,58 @@ Runner groups provide access control.
 Runner scale sets provide runner capacity and scaling.
 
 
-------------------------------------------------------------
+Important:
 
-## 12. Runner States
+Runner scale sets can belong to only one runner group at a time.
+Runner scale sets can have only one label assigned.
+With ARC, create runner pods in a different namespace than the controller/operator pods as a security best practice.
+
+
+Short YAML example:
+
+jobs:
+  arc-build:
+    runs-on: my-runner-scale-set
+    steps:
+      - uses: actions/checkout@v6
+      - run: ./build.sh
+
+
+GH-200 exam angle:
+
+ARC is for Kubernetes-based autoscaling of self-hosted runners.
+Runner scale sets solve capacity/scaling.
+Runner groups solve access control.
+
+
+============================================================
+13. RUNNER STATES AND ROUTING
+============================================================
+
+Runner states:
 
 Idle    = connected and available
 Active  = executing a job
 Offline = not connected to GitHub
 
 
-------------------------------------------------------------
+Routing behavior:
 
-## 13. Networking
+1. GitHub looks for an online and idle runner matching `runs-on` labels and groups.
+2. If a matching runner is found, the job is assigned to it.
+3. If the runner does not pick up the job within 60 seconds, the job is re-queued.
+4. If no matching runner is available, the job stays queued.
+5. If the job is queued for more than 24 hours, it fails.
+
+
+GH-200 exam angle:
+
+If a job is stuck queued, check runner labels, runner groups, runner online status, and repository access to the runner group.
+
+
+============================================================
+14. NETWORKING
+============================================================
 
 Private resource access does not always require self-hosted runners.
 
@@ -311,27 +661,45 @@ GitHub-hosted runners can use private networking options, including Azure VNET.
 
 Standard GitHub-hosted runner IP ranges are large and change regularly.
 
+
 If you need predictable/static source IPs, consider:
+
 - larger runners with static IP ranges
 - self-hosted runners
+
 
 IP allow lists and private-network access are related, but they are different problems.
 
 
-------------------------------------------------------------
+Important:
 
-## 14. Toolcache and Setup Actions
+GitHub does not recommend allowlisting the broad IP ranges used by standard GitHub-hosted runners for internal resources.
+For predictable networking, use larger runners with static IP ranges or self-hosted runners.
+
+
+GH-200 exam angle:
+
+Do not assume self-hosted runners are always required for private networking.
+Larger GitHub-hosted runners can support static IP ranges and Azure private networking in supported plans.
+
+
+============================================================
+15. TOOLCACHE AND SETUP ACTIONS
+============================================================
 
 GitHub-hosted runners come with many tools preinstalled.
+
+
 GitHub-hosted runner
-       │
-       ├── preinstalled tools
-       │
-       └── toolcache
-             ├── Node versions
-             ├── Python versions
-             ├── Java versions
-             └── other runtimes
+       |
+       |-- preinstalled tools
+       |
+       |-- toolcache
+             |-- Node versions
+             |-- Python versions
+             |-- Java versions
+             |-- other runtimes
+
 
 Example:
 
@@ -339,11 +707,190 @@ Example:
   with:
     python-version: '3.12'
 
+
 Installed software and versions can change as runner images are updated.
 
 `setup-*` actions let you explicitly select the runtime/tool version.
+
 
 Key idea:
 
 `runs-on` selects the runner environment.
 `setup-*` configures the tool/runtime inside the job.
+
+
+Short YAML example:
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pytest
+
+
+GH-200 exam angle:
+
+Do not rely blindly on whatever version is preinstalled.
+Use setup actions when the workflow needs a specific runtime version.
+
+
+============================================================
+16. MATRIX WITH RUNNERS
+============================================================
+
+A matrix can run the same job across multiple runner environments.
+
+
+Short YAML example:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - run: echo "Running on ${{ matrix.os }}"
+
+
+GH-200 exam angle:
+
+Use a matrix when you need to test across operating systems, versions, or runner types.
+Each matrix combination creates a separate job assigned to its own matching runner.
+
+
+============================================================
+17. JOB CONTAINERS AND SERVICE CONTAINERS
+============================================================
+
+Some jobs can run inside containers on the runner.
+
+
+Job container:
+
+The job steps run inside a specified container image.
+
+
+Service containers:
+
+Extra containers run alongside the job, often for databases or caches.
+
+
+Short YAML example:
+
+jobs:
+  test-with-postgres:
+    runs-on: ubuntu-latest
+    container: node:20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v6
+      - run: npm test
+
+
+Important:
+
+Docker container actions and service containers require a Linux runner with Docker available.
+
+
+GH-200 exam angle:
+
+`runs-on` still selects the runner.
+`container` changes where the job steps execute on that runner.
+`services` provide supporting containers for the job.
+
+
+============================================================
+18. RUNNER TROUBLESHOOTING CHECKLIST
+============================================================
+
+If a job is queued or not running:
+
+- Check the `runs-on` value.
+- Check whether a matching runner is online.
+- Check whether the runner is idle.
+- Check whether the repository has access to the runner group.
+- Check whether all labels match.
+- Check whether the runner scale set has capacity.
+- Check whether the job has been queued for more than 24 hours.
+
+
+If a job fails only on one runner:
+
+- Check installed tools and versions.
+- Check OS differences.
+- Check environment variables.
+- Check filesystem paths.
+- Check permissions.
+- Check network access.
+
+
+============================================================
+19. RUNNER QUICK COMPARISON
+============================================================
+
+GitHub-hosted runner:
+
+- managed by GitHub
+- fresh environment for each job
+- good default for CI
+- good for untrusted PR code
+- less infrastructure control
+
+
+Self-hosted runner:
+
+- managed by you
+- more control over hardware/software/network
+- useful for private network access
+- useful for custom tools
+- higher security and maintenance responsibility
+
+
+Larger runner:
+
+- GitHub-hosted
+- more resources
+- autoscaling
+- static IP/private networking options
+- useful for resource-heavy or network-sensitive workloads
+
+
+ARC runner scale set:
+
+- self-hosted on Kubernetes
+- autoscaled runner pods
+- useful for large-scale self-hosted runner fleets
+
+
+============================================================
+20. SECURE RUNNER CHECKLIST
+============================================================
+
+- Use GitHub-hosted runners for normal CI and untrusted pull requests.
+- Use self-hosted runners only when you need custom control.
+- Avoid public repository workflows on self-hosted runners.
+- Use runner groups for sensitive runners.
+- Use labels to route jobs by capability.
+- Keep runner labels clear and accurate.
+- Keep self-hosted runner hosts patched.
+- Prefer ephemeral or just-in-time self-hosted runners.
+- Do not store unnecessary credentials on runner machines.
+- Limit runner network access.
+- Use larger runners for static IP/private networking when supported.
+- Use setup actions for specific tool versions.
+- Use artifacts to pass files between jobs.
+- Check labels, groups, and runner state when jobs are stuck queued.
+

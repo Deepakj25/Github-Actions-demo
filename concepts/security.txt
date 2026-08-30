@@ -1,6 +1,6 @@
-// ============================================================
-// SECURITY IN GITHUB ACTIONS - GH-200 NOTES
-// ============================================================
+============================================================
+SECURITY IN GITHUB ACTIONS - GH-200 NOTES
+============================================================
 
 Security in GitHub Actions is mainly about controlling:
 
@@ -13,7 +13,7 @@ Security in GitHub Actions is mainly about controlling:
 - how build outputs can be verified
 
 
-// Official GitHub Docs To Know For GH-200
+Official GitHub Docs To Know For GH-200
 
 - Security for GitHub Actions
 - Secure use reference
@@ -25,9 +25,9 @@ Security in GitHub Actions is mainly about controlling:
 - Artifact attestations
 
 
-// ============================================================
-// 01. OIDC AND CLOUD DEPLOYMENT SECURITY
-// ============================================================
+============================================================
+01. OIDC AND CLOUD DEPLOYMENT SECURITY
+============================================================
 
 A traditional Azure deployment often looks like:
 
@@ -134,9 +134,9 @@ jobs:
         run: echo "Use the cloud provider login action here"
 
 
-// ============================================================
-// 02. GITHUB_TOKEN
-// ============================================================
+============================================================
+02. GITHUB_TOKEN
+============================================================
 
 The new security concept is the token lifecycle and trust model.
 
@@ -181,9 +181,9 @@ Any action in the job can potentially access it.
 This is why third-party action trust and token permissions matter.
 
 
-// ============================================================
-// 03. LEAST PRIVILEGE PERMISSIONS
-// ============================================================
+============================================================
+03. LEAST PRIVILEGE PERMISSIONS
+============================================================
 
 Use the permissions key to reduce what GITHUB_TOKEN can do.
 
@@ -257,9 +257,9 @@ Prefer explicit minimal permissions.
 Remember that pull_request_target can receive read/write repository permission even when triggered from a public fork, so it must be handled carefully.
 
 
-// ============================================================
-// 04. SECRETS
-// ============================================================
+============================================================
+04. SECRETS
+============================================================
 
 Use GitHub Secrets for sensitive values such as tokens, passwords, private keys, and cloud credentials.
 
@@ -317,9 +317,9 @@ jobs:
         run: ./deploy.sh
 
 
-// ============================================================
-// 05. ENVIRONMENT PROTECTION RULES
-// ============================================================
+============================================================
+05. ENVIRONMENT PROTECTION RULES
+============================================================
 
 Environments can protect deployments and environment secrets.
 
@@ -369,9 +369,9 @@ jobs:
       - run: ./deploy.sh
 
 
-// ============================================================
-// 06. SCRIPT INJECTION
-// ============================================================
+============================================================
+06. SCRIPT INJECTION
+============================================================
 
 Example risk:
 
@@ -419,9 +419,9 @@ Short YAML example:
     printf '%s\n' "$PR_TITLE"
 
 
-// ============================================================
-// 07. UNTRUSTED CONTEXTS
-// ============================================================
+============================================================
+07. UNTRUSTED CONTEXTS
+============================================================
 
 GitHub contexts provide workflow and event data.
 
@@ -443,9 +443,9 @@ Do not treat context data as trusted just because it comes from the github conte
 Avoid printing the entire github context because it can include sensitive values such as github.token.
 
 
-// ============================================================
-// 08. pull_request VS pull_request_target
-// ============================================================
+============================================================
+08. pull_request VS pull_request_target
+============================================================
 
 pull_request:
 
@@ -511,11 +511,11 @@ jobs:
       - run: echo "Do not checkout and run untrusted PR code here"
 
 
-// ============================================================
-// 09. THIRD-PARTY ACTIONS AND SHA PINNING
-// ============================================================
+============================================================
+09. THIRD-PARTY ACTIONS AND SHA PINNING
+============================================================
 
-// suggested pinning
+suggested pinning
 
 Third-party action
 -> SHA pinning is a major security best practice
@@ -562,9 +562,9 @@ steps:
     uses: actions/checkout@<full-length-commit-sha>
 
 
-// ============================================================
-// 10. MARKETPLACE SECURITY
-// ============================================================
+============================================================
+10. MARKETPLACE SECURITY
+============================================================
 
 GitHub's documentation says the Verified creator badge means GitHub has verified the identity of the action's creator as a partner organization.
 
@@ -578,9 +578,9 @@ Verified Creator is a trust signal, not a security boundary.
 The action can still change if you use a mutable tag or branch.
 
 
-// ============================================================
-// 11. REUSABLE WORKFLOWS
-// ============================================================
+============================================================
+11. REUSABLE WORKFLOWS
+============================================================
 
 Reusable workflows are called with:
 
@@ -614,9 +614,9 @@ jobs:
       SCANNER_TOKEN: ${{ secrets.SCANNER_TOKEN }}
 
 
-// ============================================================
-// 12. RUNNER SECURITY
-// ============================================================
+============================================================
+12. RUNNER SECURITY
+============================================================
 
 GitHub-hosted runners:
 
@@ -649,9 +649,9 @@ Do not store unnecessary secrets or sensitive files on runner machines.
 Limit network access from runners to sensitive internal systems.
 
 
-// ============================================================
-// 13. ARTIFACTS, LOGS, AND CACHES
-// ============================================================
+============================================================
+13. ARTIFACTS, LOGS, AND CACHES
+============================================================
 
 Artifacts, logs, and caches can accidentally contain sensitive data.
 
@@ -693,9 +693,9 @@ Short YAML example:
     retention-days: 5
 
 
-// ============================================================
-// 14. ARTIFACT ATTESTATIONS AND BUILD PROVENANCE
-// ============================================================
+============================================================
+14. ARTIFACT ATTESTATIONS AND BUILD PROVENANCE
+============================================================
 
 Attestation = signed provenance/integrity information about that output.
 
@@ -748,9 +748,9 @@ jobs:
           subject-path: ./dist/myapp
 
 
-// ============================================================
-// 15. CODE SCANNING AND DEPENDENCY SECURITY
-// ============================================================
+============================================================
+15. CODE SCANNING AND DEPENDENCY SECURITY
+============================================================
 
 GitHub Actions can be used with GitHub security features.
 
@@ -774,9 +774,9 @@ Dependency review helps detect risky dependency changes in pull requests.
 Scorecards can flag risky supply chain practices such as unpinned actions and broad token permissions.
 
 
-// ============================================================
-// 16. BRANCH PROTECTION AND RULESETS
-// ============================================================
+============================================================
+16. BRANCH PROTECTION AND RULESETS
+============================================================
 
 Branch protection and repository rulesets help control what can be merged or deployed.
 
@@ -797,9 +797,9 @@ Use branch protection or rulesets with GitHub Actions checks to enforce secure d
 Required status checks prevent merging code unless required CI/security jobs pass.
 
 
-// ============================================================
-// 17. SECURE WORKFLOW CHECKLIST
-// ============================================================
+============================================================
+17. SECURE WORKFLOW CHECKLIST
+============================================================
 
 - Use least privilege permissions for GITHUB_TOKEN.
 - Prefer GITHUB_TOKEN over PATs when possible.
