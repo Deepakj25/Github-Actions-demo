@@ -1,0 +1,38 @@
+name: Service Container Lab
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+
+        env:
+          POSTGRES_DB: appdb
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: testpass
+
+        ports:
+          - 5432:5432
+
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Test PostgreSQL connection
+        run: |
+          echo "Connecting to PostgreSQL..."
+          psql -h localhost -p 5432 \
+            -U appuser \
+            -d appdb \
+            -c "SELECT 1;"
+        env:
+          PGPASSWORD: testpass
+        #   PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}

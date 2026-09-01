@@ -1,0 +1,84 @@
+//Service Cntainers
+use-case 
+When your CI workflow runs tests, those tests need a real database available.
+Option 1
+Install PostgreSQL manually on the runner
+→ configure it
+→ start it
+→ clean it up
+
+Option 2
+Run PostgreSQL as a service container
+→ GitHub starts it for the job
+→ your tests connect to it
+→ GitHub removes it when the job finishes
+
+The service container is not your application.
+It is a dependency your application needs during the workflow
+
+Example
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+
+// How job connects to the container
+
+1 case : job runs directly in runner
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        ports:
+          - 5432:5432
+
+Service container access usually requires a mapped port, and the job connects through localhost.
+So PostgreSQL is reached through:
+localhost:5432
+
+2 case : when jovb runs in container
+Both containers are on the same Docker network, so your test connects using the service name:
+
+Job on runner     → localhost
+Job in container  → service name
+
+// we can pass envriornemtnt variables under services..these are requried for service to start
+services:
+  postgres:
+    image: postgres:16
+    env:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: appdb
+// these env variabels are just for the service .. this does not mean jobs can use these variables.
+// it can also use secrets 
+
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+
+//health check (Containers conecpt..)
+Container running does not always mean service ready.
+Health check verifies the service is usable.
+Configured with options.
+Common for DBs, Redis, etc
+
+services:
+  postgres:
+    image: postgres:16
+    env:
+      POSTGRES_PASSWORD: testpass
+    options: >-
+      --health-cmd pg_isready
+      --health-interval 10s
+      --health-timeout 5s
+      --health-retries 5
+
+// Service containers are supported when the job runs on a Linux runner with Docker available.
+not works with windows-latest image
