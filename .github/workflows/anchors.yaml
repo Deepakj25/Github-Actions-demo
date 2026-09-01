@@ -1,0 +1,28 @@
+name: YAML Anchors Lab
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: &runner ubuntu-latest
+
+    env: &common_env
+      APP_ENV: dev
+      REGION: eastus
+
+    steps:
+      - name: Build values
+        run: |
+          echo "APP_ENV=$APP_ENV"
+          echo "REGION=$REGION"
+
+  test:
+    runs-on: *runner
+    env: *common_env
+
+    steps:
+      - name: Test values
+        run: |
+          echo "APP_ENV=$APP_ENV"
+          echo "REGION=$REGION"

@@ -1,0 +1,42 @@
+//anchors
+use case
+Suppose multiple jobs use the same environment variables:
+env:
+  APP_ENV: dev
+  REGION: eastus
+
+so instead of repeating this everywhere. (check the syntax)
+
+env: &common_env
+  APP_ENV: dev
+  REGION: eastus
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      <<: *common_env
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      <<: *common_env
+
+
+
+Rule: you cannot reference an anchor before YAML has seen its definition.
+
+
+// Anchors are not just used for env...these are genric YAML
+
+Example
+
+jobs:
+  build:
+    runs-on: &runner ubuntu-latest
+
+  test:
+    runs-on: *runner
+
+&name       → define anchor
+*name       → reuse anchor
