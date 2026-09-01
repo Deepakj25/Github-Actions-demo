@@ -1,22 +1,36 @@
-//Service Cntainers
-use-case 
-When your CI workflow runs tests, those tests need a real database available.
-Option 1
-Install PostgreSQL manually on the runner
-→ configure it
-→ start it
-→ clean it up
+###### What Are Service Containers?
 
-Option 2
-Run PostgreSQL as a service container
-→ GitHub starts it for the job
-→ your tests connect to it
-→ GitHub removes it when the job finishes
+Service containers are Docker containers that run beside a GitHub Actions job.
+
+They are used when a workflow needs an external dependency during CI, such as:
+PostgreSQL
+Redis
+MySQL
+MongoDB
 
 The service container is not your application.
-It is a dependency your application needs during the workflow
+It is a dependency that your application or tests connect to during the workflow.
 
-Example
+
+###### Use Case
+
+When CI runs tests, those tests may need a real database.
+
+Option 1:
+Install PostgreSQL manually on the runner
+configure it
+start it
+clean it up
+
+Option 2:
+Run PostgreSQL as a service container
+GitHub starts it for the job
+tests connect to it
+GitHub removes it when the job finishes
+
+
+###### Basic Syntax
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -25,9 +39,18 @@ jobs:
       postgres:
         image: postgres:16
 
-// How job connects to the container
+postgres
+→ service name
 
-1 case : job runs directly in runner
+image
+→ Docker image used to start the service
+
+
+###### How The Job Connects To The Service
+
+There are two common cases.
+
+Case 1: job runs directly on the runner
 
 jobs:
   test:
@@ -39,17 +62,29 @@ jobs:
         ports:
           - 5432:5432
 
-Service container access usually requires a mapped port, and the job connects through localhost.
-So PostgreSQL is reached through:
+When the job runs directly on the runner, map the container port to the runner.
+The job connects through:
 localhost:5432
 
-2 case : when jovb runs in container
-Both containers are on the same Docker network, so your test connects using the service name:
 
+Case 2: job runs inside a container
+
+Both the job container and service container are on the same Docker network.
+The job connects using the service name:
+postgres:5432
+
+Summary:
 Job on runner     → localhost
 Job in container  → service name
 
-// we can pass envriornemtnt variables under services..these are requried for service to start
+
+###### Environment Variables
+
+Service containers can receive environment variables under the service definition.
+These variables are used by the service when it starts.
+
+Example:
+
 services:
   postgres:
     image: postgres:16
@@ -57,17 +92,41 @@ services:
       POSTGRES_USER: appuser
       POSTGRES_PASSWORD: testpass
       POSTGRES_DB: appdb
-// these env variabels are just for the service .. this does not mean jobs can use these variables.
-// it can also use secrets 
 
-      POSTGRES_USER: appuser
+Important:
+Service env variables are only for the service container.
+They are not automatically available to workflow steps.
+
+If a step needs the same value, define it again at workflow, job, or step level.
+
+Secrets can also be used:
+
+services:
+  postgres:
+    image: postgres:16
+    env:
       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
-//health check (Containers conecpt..)
-Container running does not always mean service ready.
-Health check verifies the service is usable.
-Configured with options.
-Common for DBs, Redis, etc
+
+###### Port Mapping
+
+ports:
+  - 5432:5432
+
+Format:
+runner-port:container-port
+
+This maps PostgreSQL inside the container to localhost on the runner.
+
+
+###### Health Check
+
+A running container does not always mean the service is ready.
+
+For databases, the container may start before the database accepts connections.
+A health check tells GitHub Actions when the service is usable.
+
+Example:
 
 services:
   postgres:
@@ -80,5 +139,32 @@ services:
       --health-timeout 5s
       --health-retries 5
 
-// Service containers are supported when the job runs on a Linux runner with Docker available.
-not works with windows-latest image
+Common for:
+databases
+caches
+message brokers
+
+
+###### Important Points
+
+Service containers require a Linux runner with Docker available.
+
+Works with:
+ubuntu-latest
+
+Does not work the same way with:
+windows-latest
+macos-latest
+
+Service containers are cleaned up automatically after the job finishes.
+
+
+###### GH-200 Key Points
+
+1. Service containers provide dependencies for a job.
+2. They are defined under jobs.<job_id>.services.
+3. When the job runs on the runner, connect using localhost and mapped ports.
+4. When the job runs in a container, connect using the service name.
+5. Service env variables are not automatically available to workflow steps.
+6. Health checks help wait until the service is ready.
+7. Service containers are supported on Linux runners with Docker.

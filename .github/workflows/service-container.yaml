@@ -1,26 +1,36 @@
 name: Service Container Lab
 
 on:
+  # Manual trigger so this lab can be run on demand from the Actions tab.
   workflow_dispatch:
 
 jobs:
   test:
+    # Service containers require a Linux runner with Docker available.
     runs-on: ubuntu-latest
 
     services:
+      # This starts a PostgreSQL container for this job only.
+      # The service is removed automatically when the job finishes.
       postgres:
         image: postgres:16
 
+        # These variables are passed to the PostgreSQL container when it starts.
+        # They are not automatically available inside the workflow steps.
         env:
           POSTGRES_DB: appdb
           POSTGRES_USER: appuser
           POSTGRES_PASSWORD: testpass
 
+        # Because this job runs directly on the runner, map the container port
+        # to localhost so steps can connect using localhost:5432.
         ports:
           - 5432:5432
 
+        # Wait until PostgreSQL is ready to accept connections.
+        # A running container does not always mean the database is ready.
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U appuser -d appdb"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -34,5 +44,8 @@ jobs:
             -d appdb \
             -c "SELECT 1;"
         env:
+          # psql reads this value for password authentication.
+          # This must be set for the step separately from the service env above.
           PGPASSWORD: testpass
-        #   PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          # For real projects, prefer a secret instead of a plain text password:
+          # PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
