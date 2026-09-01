@@ -1,12 +1,15 @@
 name: YAML Anchors Lab
 
 on:
+  # Manual trigger so this lab can be run from the Actions tab.
   workflow_dispatch:
 
 jobs:
   build:
+    # Define the runner value once and store it in the "runner" anchor.
     runs-on: &runner ubuntu-latest
 
+    # Define a reusable env mapping and store it in the "common_env" anchor.
     env: &common_env
       APP_ENV: dev
       REGION: eastus
@@ -18,7 +21,11 @@ jobs:
           echo "REGION=$REGION"
 
   test:
+    # Reuse the same runner value defined in the build job.
     runs-on: *runner
+
+    # Reuse the full env mapping defined in the build job.
+    # GitHub Actions supports direct aliases like this.
     env: *common_env
 
     steps:

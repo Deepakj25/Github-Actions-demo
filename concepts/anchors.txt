@@ -1,35 +1,19 @@
-//anchors
-use case
-Suppose multiple jobs use the same environment variables:
-env:
-  APP_ENV: dev
-  REGION: eastus
+###### What Are YAML Anchors?
 
-so instead of repeating this everywhere. (check the syntax)
+YAML anchors let you define a value once and reuse it later in the same YAML file.
 
-env: &common_env
-  APP_ENV: dev
-  REGION: eastus
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    env:
-      <<: *common_env
-
-  test:
-    runs-on: ubuntu-latest
-    env:
-      <<: *common_env
+They help reduce repeated configuration.
 
 
+###### Basic Symbols
 
-Rule: you cannot reference an anchor before YAML has seen its definition.
+&name
+→ define an anchor
 
+*name
+→ reuse an anchor
 
-// Anchors are not just used for env...these are genric YAML
-
-Example
+Example:
 
 jobs:
   build:
@@ -38,5 +22,123 @@ jobs:
   test:
     runs-on: *runner
 
-&name       → define anchor
-*name       → reuse anchor
+Here:
+&runner defines the reusable value
+*runner reuses that value
+
+
+###### Use Case
+
+Suppose multiple jobs use the same environment variables.
+
+Without anchors:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: dev
+      REGION: eastus
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: dev
+      REGION: eastus
+
+With anchors:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env: &common_env
+      APP_ENV: dev
+      REGION: eastus
+
+  test:
+    runs-on: ubuntu-latest
+    env: *common_env
+
+
+###### Important Rule
+
+You cannot reference an anchor before YAML has seen its definition.
+
+This works:
+
+jobs:
+  build:
+    runs-on: &runner ubuntu-latest
+
+  test:
+    runs-on: *runner
+
+This does not work:
+
+jobs:
+  test:
+    runs-on: *runner
+
+  build:
+    runs-on: &runner ubuntu-latest
+
+
+###### Anchors With Top-Level Env
+
+Top-level env is already inherited by all jobs and steps.
+
+Example:
+
+env:
+  APP_ENV: dev
+  REGION: eastus
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "$APP_ENV"
+
+Because of this, you usually do not need an anchor for global env values.
+
+If you define an anchor on top-level env:
+
+env: &common_env
+  APP_ENV: dev
+  REGION: eastus
+
+It means:
+the env variables are global
+the env mapping is also saved as common_env
+
+
+###### GitHub Actions Limitation
+
+GitHub Actions supports YAML anchors and aliases.
+
+Use this:
+
+env: *common_env
+
+Avoid this:
+
+env:
+  <<: *common_env
+
+<<:
+→ YAML merge key
+
+Merge keys are not supported reliably in GitHub Actions workflows.
+
+If one job needs to override a single value, write that job's env explicitly or use top-level env inheritance.
+
+
+###### GH-200 Key Points
+
+1. Anchors are a YAML feature for reusing values.
+2. &name defines an anchor.
+3. *name reuses an anchor.
+4. Anchors must be defined before they are reused.
+5. Anchors can be used for env, runs-on, steps, and other YAML values.
+6. Top-level env is inherited automatically by jobs and steps.
+7. Avoid <<: merge keys in GitHub Actions workflows.
