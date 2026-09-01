@@ -1,0 +1,254 @@
+###### GitHub Actions - Branch and Path Filters
+
+###### Filters
+→ used to control when a workflow should run.
+
+Common filters:
+branches
+branches-ignore
+tags
+tags-ignore
+paths
+paths-ignore
+
+
+###### Branch Filter
+
+on:
+  push:
+    branches: [main]
+
+Meaning:
+Run only when code is pushed to main.
+
+
+###### Multiple Branches
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+
+Meaning:
+Run on main, develop, and any branch under release/.
+
+
+###### branches-ignore
+
+on:
+  push:
+    branches-ignore:
+      - 'docs/**'
+
+Meaning:
+Do not run for branches matching docs/**.
+
+Important:
+Do not use branches and branches-ignore together for the same event.
+
+If you need include + exclude:
+Use branches with !
+
+on:
+  push:
+    branches:
+      - 'release/**'
+      - '!release/**-alpha'
+
+Meaning:
+Run for release branches,
+but skip alpha release branches.
+
+Rule:
+branches + branches-ignore
+→ not allowed together
+
+branches with !
+→ allowed
+
+Order matters:
+Put exclude pattern after include pattern.
+
+
+###### Path Filter
+
+on:
+  push:
+    paths:
+      - 'src/**'
+
+Meaning:
+Run only when files inside src/ change.
+
+
+###### Multiple Paths
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'package.json'
+
+Meaning:
+Run when at least one changed file matches src/** or package.json.
+
+
+###### paths-ignore
+
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+
+Meaning:
+Do not run if all changed files are inside docs/.
+
+Important:
+If one changed file is outside docs/, the workflow will run.
+
+If you need include + exclude:
+Use paths with !
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - '!src/docs/**'
+
+Meaning:
+Run for changes inside src/,
+but skip changes inside src/docs/.
+
+Rule:
+paths + paths-ignore
+→ not allowed together
+
+paths with !
+→ allowed
+
+
+###### Branch + Path Together
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+
+Meaning:
+Run only when:
+1. push is to main
+2. changed files match src/**
+
+Both conditions must match.
+
+
+###### Pull Request Branch Filter
+
+on:
+  pull_request:
+    branches: [main]
+
+Meaning:
+Run when the PR targets main.
+
+Important:
+For pull_request, branches means target/base branch.
+It does not mean source branch.
+
+
+###### Glob Patterns
+
+*
+→ matches one level
+
+**
+→ matches multiple levels
+
+Examples:
+'*.js'
+→ JavaScript files in root only
+
+'**.js'
+→ JavaScript files anywhere
+
+'src/**'
+→ anything inside src/
+
+'release/**'
+→ branches like release/v1, release/hotfix/v2
+
+
+###### Tags
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+Meaning:
+Run when a tag like v1.0.0 is pushed.
+
+Important:
+Path filters are not evaluated for tag pushes.
+
+
+###### Common Mistakes
+
+Mistake:
+branches: [main]
+branches-ignore: [dev]
+
+Problem:
+Cannot use both for the same event.
+
+
+Mistake:
+paths: ['docs/**']
+paths-ignore: ['docs/private/**']
+
+Problem:
+Cannot use both for the same event.
+
+Correct:
+paths:
+  - 'docs/**'
+  - '!docs/private/**'
+
+
+Mistake:
+on:
+  pull_request:
+    branches: [feature/login]
+
+Problem:
+This checks PR target branch, not PR source branch.
+
+
+###### Quick Memory
+
+branches
+→ where the code is pushed or where PR is targeted
+
+paths
+→ which files changed
+
+types
+→ what activity happened
+
+if
+→ custom condition logic
+
+
+###### GH-200 Key Points
+
+1. branches and paths reduce unnecessary workflow runs.
+2. branch and path filters must both match when used together.
+3. branches means target branch for pull_request.
+4. paths-ignore skips only when all changed files match ignored paths.
+5. You cannot use include and ignore filters together for the same event.
+6. Use ! when you need include and exclude patterns together.
+7. Pattern order matters when using !.
+8. Path filters do not apply to tag pushes.

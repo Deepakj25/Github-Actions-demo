@@ -1,0 +1,42 @@
+* * * * * command
+│ │ │ │ │
+│ │ │ │ └── Day of week (0-7)  Sun=0/7
+│ │ │ └──── Month (1-12)
+│ │ └────── Day of month (1-31)
+│ └──────── Hour (0-23)
+└────────── Minute (0-59)
+
+Minute → Hour → Day → Month → Weekday
+
+* = every
+, = multiple values
+- = range
+/ = interval
+
+
+//Notes
+schedule
+→ time-based workflow trigger
+
+cron
+→ five-field schedule expression
+
+default timezone
+→ UTC
+
+default branch
+→ where scheduled workflow runs
+explicit timezone can be specified
+on:
+  schedule:
+    - cron: '30 8 * * 1-5'
+      timezone: 'Asia/Kolkata'
+
+minimum interval
+→ 5 minutes
+
+high load
+→ schedules can be delayed
+
+public repo inactive for 60 days
+→ scheduled workflows can be disabled

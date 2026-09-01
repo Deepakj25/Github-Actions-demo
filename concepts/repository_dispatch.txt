@@ -1,0 +1,72 @@
+###### What Is repository_dispatch?
+
+repository_dispatch
+→ external/custom event trigger.
+
+Used when something outside normal GitHub events should start a workflow.
+
+
+###### Architecture Flow
+
+External system / another repo
+        ↓
+GitHub API call
+        ↓
+repository_dispatch
+        ↓
+workflow starts
+        ↓
+reads client_payload
+
+
+###### Basic Syntax
+
+on:
+  repository_dispatch:
+    types: [deploy-request]
+
+types
+→ filters the custom event type.
+
+
+###### Payload
+
+client_payload
+→ custom data sent with the event.
+
+Access it using:
+github.event.client_payload
+
+Example:
+github.event.client_payload.environment
+
+
+###### Important Points
+
+Workflow must exist on the default branch.
+
+repository_dispatch is triggered through GitHub API.
+
+Useful for:
+external deployment tools
+another repository
+custom automation
+third-party systems
+
+
+###### repository_dispatch vs workflow_dispatch
+
+workflow_dispatch
+→ manual trigger from GitHub UI or API
+
+repository_dispatch
+→ external/custom event trigger using API
+
+
+###### GH-200 Key Points
+
+1. repository_dispatch is used for custom external events.
+2. It requires an API call.
+3. types filters the custom event type.
+4. Extra data is passed using client_payload.
+5. Workflow must exist on the default branch.

@@ -58,5 +58,3 @@ You reuse it with:
 env: *test_env
 
 Anchors are a YAML mechanism for avoiding duplicated configuration
-
-6. Service containers

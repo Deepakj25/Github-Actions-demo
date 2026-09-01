@@ -1,0 +1,21 @@
+name: Cron Job
+on:
+    schedule:
+        - cron : '0 0 * * *'  # Runs every day at midnight UTC
+        - cron : '0 6 * * *'  # Runs every week on Sunday at midnight UTC
+        - cron : '0 12 1 * *' # Runs every month on the first day at noon UTC
+
+jobs:
+    CronJob:
+        name: Cron Job
+        runs-on: ubuntu-latest
+        steps:
+            - name: Workflow troggered by cron
+              run: |
+                echo "================================"
+                echo "Cron workflow triggered"
+                echo "================================"
+                echo "Cron expression: ${{ github.event.schedule }}"
+                echo "UTC time:        $(date -u)"
+                echo "Event:            ${{ github.event_name }}"
+                echo "================================"

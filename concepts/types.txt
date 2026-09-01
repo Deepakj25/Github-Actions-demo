@@ -1,0 +1,376 @@
+GitHub Actions - types
+
+Main meaning of types
+→ types is used with some events to filter activity types.
+
+Activity type
+→ the specific action inside an event.
+
+Example:
+pull_request is the event
+opened, synchronize, reopened, closed are activity types
+
+
+Basic syntax
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+Meaning:
+Run this workflow only when a pull request is:
+1. opened
+2. updated with new commits
+3. reopened
+
+
+Without types
+
+on:
+  pull_request:
+
+Meaning:
+The workflow runs for the default activity types of pull_request.
+
+Important:
+Not every event supports types.
+types only works for events that have activity types.
+
+
+Why types is used
+
+types is used to make workflows more specific.
+
+Without types:
+Workflow may run for many activities.
+
+With types:
+Workflow runs only for selected activities.
+
+This saves CI minutes and avoids unnecessary workflow runs.
+
+
+Common activity types
+
+pull_request:
+  opened
+  synchronize
+  reopened
+  closed
+  ready_for_review
+  converted_to_draft
+  labeled
+  unlabeled
+  assigned
+  unassigned
+
+issues:
+  opened
+  edited
+  deleted
+  closed
+  reopened
+  labeled
+  unlabeled
+  assigned
+  unassigned
+
+issue_comment:
+  created
+  edited
+  deleted
+
+release:
+  published
+  unpublished
+  created
+  edited
+  deleted
+  prereleased
+  released
+
+workflow_run:
+  requested
+  in_progress
+  completed
+
+
+Exam point
+
+types filters event activity.
+branches filters branch names.
+paths filters changed file paths.
+
+Do not confuse them.
+
+Example:
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main]
+    paths:
+      - 'src/**'
+
+Meaning:
+Run only when:
+1. PR is opened or updated
+2. PR target branch is main
+3. changed files match src/**
+
+All filters must match.
+
+
+push event
+
+on:
+  push:
+    branches: [main]
+
+push does not use types.
+
+Why?
+push has no activity type like opened or closed.
+
+For push, use:
+branches
+branches-ignore
+tags
+tags-ignore
+paths
+paths-ignore
+
+
+pull_request vs pull_request_target
+
+pull_request:
+Runs in the context of the pull request code.
+Safer for untrusted code because secrets are not passed to workflows from forks.
+
+pull_request_target:
+Runs in the context of the base repository.
+Can access base repo permissions and secrets.
+Use carefully with forked PRs.
+
+Both can use types.
+
+Example:
+on:
+  pull_request_target:
+    types: [opened, labeled]
+
+
+closed type
+
+on:
+  pull_request:
+    types: [closed]
+
+This runs when a PR is closed.
+
+Closed can mean:
+1. merged
+2. closed without merge
+
+To run only when merged:
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "PR was merged"
+
+Exam point:
+types: [closed] is not enough to prove the PR was merged.
+Use an if condition with github.event.pull_request.merged.
+
+
+labeled type
+
+on:
+  issues:
+    types: [labeled]
+
+This runs when a label is added to an issue.
+
+To run only for a specific label:
+
+jobs:
+  triage:
+    if: github.event.label.name == 'bug'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Bug label added"
+
+Exam point:
+types can filter the activity as labeled.
+types cannot filter the label name.
+Use if for that.
+
+
+workflow_run types
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types: [completed]
+
+Meaning:
+Run this workflow after the Build workflow completes.
+
+Common use:
+Build workflow creates artifact.
+Deploy workflow starts after Build completes.
+
+Important:
+workflow_run can be used to chain workflows.
+GitHub limits chaining depth.
+
+
+Events without activity types
+
+Some events do not use types.
+
+Examples:
+push
+schedule
+workflow_dispatch
+repository_dispatch
+
+For these events, configure their own fields instead.
+
+schedule:
+  use cron
+
+workflow_dispatch:
+  use inputs
+
+repository_dispatch:
+  use custom event_type
+
+
+workflow_dispatch input types
+
+This is different from event activity types.
+
+workflow_dispatch supports input type values:
+string
+choice
+boolean
+environment
+
+Example:
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: environment
+        required: true
+      debug:
+        description: "Enable debug"
+        type: boolean
+        default: false
+      logLevel:
+        description: "Log level"
+        type: choice
+        options:
+          - info
+          - warning
+          - error
+
+Use inputs context:
+
+if: inputs.debug == true
+
+Important:
+inputs context preserves boolean values.
+github.event.inputs stores input values as strings.
+
+
+repository_dispatch event_type
+
+repository_dispatch does not use types.
+It uses event_type.
+
+Example:
+on:
+  repository_dispatch:
+    types: [deploy]
+
+Correction:
+repository_dispatch supports types-like filtering in workflow syntax,
+but the external API sends event_type.
+
+Think like this:
+API sends event_type = deploy
+Workflow filters it using types: [deploy]
+
+
+Common mistakes
+
+Mistake:
+on:
+  push:
+    types: [created]
+
+Problem:
+push does not support types.
+
+
+Mistake:
+on:
+  pull_request:
+    types: [main]
+
+Problem:
+main is a branch, not an activity type.
+
+Correct:
+on:
+  pull_request:
+    branches: [main]
+
+
+Mistake:
+on:
+  pull_request:
+    types: [merged]
+
+Problem:
+merged is not a pull_request activity type.
+
+Correct:
+on:
+  pull_request:
+    types: [closed]
+
+Then use:
+if: github.event.pull_request.merged == true
+
+
+Quick memory
+
+types
+→ what happened
+
+branches
+→ where it happened
+
+paths
+→ which files changed
+
+if
+→ extra condition logic
+
+
+GH-200 key points
+
+1. types is configured under an event.
+2. types filters activity types for supported events.
+3. Not all events support types.
+4. push uses branches, tags, and paths filters.
+5. pull_request closed does not always mean merged.
+6. workflow_dispatch input type is different from event activity types.
+7. Use if expressions when types cannot filter deeply enough.
+8. Multiple filters under one event must all match.
