@@ -1,0 +1,236 @@
+GitHub Actions: workflow_dispatch
+=================================
+
+Purpose
+-------
+workflow_dispatch is used to start a workflow manually.
+
+It is useful when a workflow should run only when a person or external tool
+explicitly requests it instead of automatically reacting to a push, pull
+request, or schedule.
+
+Common use cases:
+- Start a deployment manually.
+- Select a target environment before deploying.
+
+Basic syntax
+------------
+The workflow_dispatch trigger is configured under on.
+
+Example:
+
+name: Manual Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Workflow triggered manually"
+
+This adds a Run workflow button to the workflow page in the GitHub Actions UI.
+
+
+Default branch requirement
+--------------------------
+The workflow file must exist on the repository's default branch before GitHub
+can receive the workflow_dispatch event.
+
+After the workflow exists on the default branch, the user can select the branch
+or tag whose version of the workflow should run.
+
+Important:
+- A new workflow that exists only on a feature branch will not display the
+  Run workflow button.
+- The selected ref controls which version of the workflow and repository files
+  are used for the run.
+
+
+Workflow inputs
+---------------
+Inputs collect values from the user before the workflow starts.
+
+Example:
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: Environment to target
+        required: true
+        default: development
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+Input configuration:
+- description explains the input in the GitHub UI.
+- required controls whether the user must provide a value.
+- default supplies a value when the user does not provide one.
+- type controls validation and the input control shown in the UI.
+- options defines the allowed values for a choice input.
+
+
+Supported input types
+---------------------
+workflow_dispatch supports five input types.
+
+string:
+- Accepts free-form text.
+- Useful for versions, tags, names, or messages.
+
+boolean:
+- Displays a true/false checkbox.
+- Remains a Boolean value when accessed through the inputs context.
+
+choice:
+- Displays a list of predefined options.
+- Allows only one option to be selected.
+- The selected value is returned as a string.
+
+number:
+- Accepts a numeric value.
+- Useful for counts, limits, or replica values.
+
+environment:
+- Allows the user to select one of the repository's configured GitHub
+  environments.
+- Useful when the job should target an existing deployment environment.
+
+Limits:
+- A workflow can define at most 25 top-level inputs.
+- The combined input payload can contain at most 65,535 characters.
+
+
+Reading input values
+--------------------
+The preferred way to read workflow_dispatch inputs is the inputs context.
+
+Examples:
+
+${{ inputs.target_environment }}
+${{ inputs.version }}
+${{ inputs.dry_run }}
+
+Inputs are also available through the event payload:
+
+${{ github.event.inputs.target_environment }}
+
+Important difference:
+- inputs preserves data types.
+- github.event.inputs converts Boolean values to strings.
+
+Example: suppose the user selects dry_run as true.
+
+Using the inputs context:
+
+${{ inputs.dry_run }}
+-> Boolean true
+
+It can be used directly in a condition:
+
+if: ${{ inputs.dry_run }}
+
+Using the event payload context:
+
+${{ github.event.inputs.dry_run }}
+-> string 'true'
+
+It must be compared as a string:
+
+if: ${{ github.event.inputs.dry_run == 'true' }}
+
+Prefer inputs for new workflows, especially when using Boolean conditions.
+
+
+Boolean input conditions
+------------------------
+A Boolean input can be used directly in an if condition.
+
+Example:
+
+- name: Preview only
+  if: ${{ inputs.dry_run }}
+  run: echo "No changes will be applied"
+
+Negate the Boolean with ! when a step should run only when the value is false.
+
+Example:
+
+- name: Apply changes
+  if: ${{ !inputs.dry_run }}
+  run: echo "Applying changes"
+
+Important:
+- inputs.dry_run is a Boolean.
+- Do not compare it with the string 'true'.
+
+
+Safely using inputs in shell commands
+-------------------------------------
+Workflow inputs should be treated as untrusted data.
+
+Pass input values to a shell through environment variables.
+
+Safer example:
+
+- name: Print version
+  env:
+    VERSION: ${{ inputs.version }}
+  run: echo "Version: $VERSION"
+
+Avoid inserting a free-form input directly into a run script.
+
+Risky example:
+
+- run: echo "Version: ${{ inputs.version }}"
+
+Problem:
+- GitHub replaces the expression before the shell starts.
+- Shell syntax inside a malicious input could become part of the script.
+- An environment variable keeps the input as data instead of shell code.
+
+
+Custom workflow run name
+------------------------
+run-name controls the name displayed for an individual workflow run.
+
+Example:
+
+run-name: >-
+  Manual run for ${{ inputs.target_environment }} by @${{ github.actor }}
+
+Meaning:
+- inputs.target_environment displays the selected environment.
+- github.actor displays the user or account that triggered the workflow.
+- >- folds the YAML value into one line and removes the final newline.
+> folds ordinary line breaks into spaces.
+- removes the newline at the very end.
+
+Example displayed name:
+
+Manual run for staging by @octocat
+
+
+Important details for GH-200
+----------------------------
+Remember these points:
+
+1. workflow_dispatch manually starts a workflow.
+2. The workflow file must first exist on the default branch.
+3. A run can target a selected branch or tag after the workflow is available.
+4. Inputs support string, boolean, choice, number, and environment types.
+5. Read input values from the inputs context.
+6. inputs preserves Boolean values, but github.event.inputs converts them to
+   strings.
+7. A choice input allows one selection and returns a string.
+8. A workflow can define at most 25 top-level inputs.
+9. Manual workflows can be started from the GitHub UI, CLI, or REST API.
+10. Treat input values as untrusted and pass them through env in shell steps.
+11. run-name customizes the name shown for an individual workflow run.
+12. workflow_dispatch is different from repository_dispatch, which represents
+    a custom repository event.

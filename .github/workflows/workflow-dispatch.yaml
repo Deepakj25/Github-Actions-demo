@@ -1,13 +1,79 @@
-name: Sample Workflow Dispatch
+name: Workflow Dispatch Demo
+
+# Custom name shown for each run in the GitHub Actions UI.
+# >- folds the following YAML text into one line and removes the final newline.
+run-name: >-
+  Manual run for ${{ inputs.target_environment }} by @${{ github.actor }}
 
 on:
+  # Enables manual runs from the Actions UI, GitHub CLI, or REST API.
+  # The workflow must exist on the repository's default branch first.
   workflow_dispatch:
+    # Inputs become fields in the Run workflow form and are read with inputs.<name>.
+    inputs:
+      target_environment:
+        description: Environment to target
+        required: true
+        default: development
+        # choice renders a dropdown and returns the selected option as a string.
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+      version:
+        description: Version or release label
+        required: true
+        default: latest
+        # string accepts free-form text.
+        type: string
+
+      replicas:
+        description: Number of replicas
+        required: true
+        default: 1
+        # number accepts a numeric value.
+        type: number
+
+      dry_run:
+        description: Preview the operation without applying changes
+        required: true
+        default: true
+        # boolean renders a checkbox and remains a true/false value in inputs.
+        type: boolean
+
+# Give the automatically created GITHUB_TOKEN only the access this workflow needs.
+permissions:
+  contents: read
 
 jobs:
   build:
-    name: Workflow Dispatch Job
+    name: Inspect manual inputs
     runs-on: ubuntu-latest
 
     steps:
-      - name: Print a message
-        run: echo "Workflow triggered manually!"
+      - name: Print selected values
+        # Pass user-controlled inputs through env instead of inserting them
+        # directly into the shell script.
+        env:
+          TARGET_ENVIRONMENT: ${{ inputs.target_environment }}
+          VERSION: ${{ inputs.version }}
+          REPLICAS: ${{ inputs.replicas }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          echo "Workflow triggered manually by $GITHUB_ACTOR"
+          echo "Environment: $TARGET_ENVIRONMENT"
+          echo "Version:     $VERSION"
+          echo "Replicas:    $REPLICAS"
+          echo "Dry run:     $DRY_RUN"
+
+      - name: Preview only
+        # Boolean inputs can be used directly as conditions.
+        if: ${{ inputs.dry_run }}
+        run: echo "Dry-run mode is enabled; no changes will be applied."
+
+      - name: Apply changes
+        # ! negates the boolean, so this runs only when dry_run is false.
+        if: ${{ !inputs.dry_run }}
+        run: echo "This is where the real operation would run."
