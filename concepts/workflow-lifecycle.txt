@@ -1,0 +1,8 @@
+// workflow lifecycle
+Disable = pause
+Enable  = resume
+Delete  = remove
+
+GitHub can automatically disable that scheduled workflow after 60 days of no repository activity in a public repository.
+
+Also, when a public repository is forked, scheduled workflows are disabled by default in the fork.

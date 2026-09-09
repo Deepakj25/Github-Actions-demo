@@ -1,0 +1,375 @@
+GitHub Actions: Concurrency
+===========================
+
+Purpose
+-------
+Concurrency controls how many workflow runs or jobs with the same concurrency
+group can run at the same time.
+
+Default GitHub Actions behavior:
+- Multiple workflow runs can run at the same time.
+- Multiple jobs in the same workflow can run at the same time if there is no
+  needs dependency.
+- Multiple runs of the same workflow can overlap.
+
+Concurrency is used when overlapping runs could create problems, waste minutes,
+or deploy old code.
+
+Common use cases:
+- Prevent two production deployments from running at the same time.
+- Cancel older CI runs when a newer commit is pushed to the same branch.
+- Serialize jobs that use the same shared resource, environment, database, or
+  self-hosted runner dependency.
+- Avoid race conditions when publishing packages, tags, releases, or artifacts.
+
+
+Key idea
+--------
+A concurrency group is like a lock name.
+
+Only one workflow run or job in the same repository can be running in the same
+concurrency group at a time.
+
+Example:
+
+concurrency:
+  group: prod-deployment
+  cancel-in-progress: false
+
+Meaning:
+- Any run/job using the group name prod-deployment shares the same lock.
+- If one is already running, another one with the same group cannot run at the
+  same time.
+
+
+Workflow-level concurrency
+--------------------------
+Workflow-level concurrency is written at the top level of the workflow file.
+It controls the whole workflow run.
+
+Example: cancel older CI runs for the same branch.
+
+name: CI
+
+on:
+  push:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Run tests"
+
+Important:
+- github.workflow = workflow name, for example CI
+- github.ref = full ref, for example refs/heads/main
+- This creates a separate concurrency group per workflow and per branch/tag.
+- A new push to the same branch cancels the older in-progress run.
+
+
+Job-level concurrency
+---------------------
+Job-level concurrency is written under a specific job.
+It controls only that job, not the entire workflow run.
+
+Example: only serialize the deploy job.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Build can run normally"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    concurrency:
+      group: prod-deployment
+      cancel-in-progress: false
+    steps:
+      - run: echo "Deploying to prod"
+
+Meaning:
+- build jobs can still run normally.
+- deploy jobs using prod-deployment run one at a time.
+
+
+cancel-in-progress
+------------------
+cancel-in-progress controls what happens to a currently running item in the
+same concurrency group.
+
+cancel-in-progress: false
+- Do not cancel the currently running job/run.
+- The new job/run waits as pending.
+- Best for deployments, releases, database migrations, and publishing.
+
+cancel-in-progress: true
+- Cancel the currently running job/run in the same group.
+- Best for CI checks where older commits no longer matter.
+
+Example:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+If a developer pushes three commits quickly to the same branch:
+- The older CI run can be canceled.
+- The newest CI run is the one that matters.
+
+
+Pending behavior
+----------------
+In a concurrency group:
+- At most one item can be running.
+- By default, at most one item can be pending.
+- If another item is queued while one is already pending, GitHub cancels the old
+  pending item and keeps the newest pending item.
+
+This is an important exam point:
+- concurrency does not create an unlimited queue by default.
+- default behavior keeps the latest pending run, not every pending run.
+
+Some GitHub Actions documentation also describes queue: max, which allows
+multiple pending runs in a concurrency group to wait in order.
+
+Example:
+
+concurrency:
+  group: production-deploy
+  queue: max
+
+Use this when every run should eventually execute sequentially instead of older
+pending runs being replaced.
+
+
+Dynamic concurrency groups
+--------------------------
+Hard-coded group:
+
+concurrency:
+  group: prod-deployment
+
+All jobs/runs with this group share one lock.
+
+Dynamic group:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+This creates separate locks based on context values.
+
+Common patterns:
+
+${{ github.workflow }}-${{ github.ref }}
+- Separate group per workflow and branch/tag.
+- Good default for canceling old CI runs.
+
+deploy-${{ github.ref_name }}
+- Separate deployment queue per branch name.
+
+deploy-production
+- Single global production deployment lock.
+
+${{ github.head_ref || github.run_id }}
+- Useful when the workflow supports pull_request and other events.
+- github.head_ref exists for pull_request events.
+- github.run_id is a safe fallback because it always exists and is unique.
+
+
+Avoid accidental cross-workflow cancellation
+-------------------------------------------
+Concurrency group names are repository-wide, not just workflow-file-wide.
+
+Risky:
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+Problem:
+- Different workflows on the same branch can share the same group.
+- One workflow might cancel another workflow unexpectedly.
+
+Safer:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+This includes the workflow name, so each workflow has its own branch-specific
+group.
+
+
+Conditional cancel-in-progress
+------------------------------
+cancel-in-progress can be an expression.
+
+Example: cancel old runs except on release branches.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !contains(github.ref, 'release/') }}
+
+Meaning:
+- On normal branches, old in-progress runs are canceled.
+- On release branches, old in-progress runs are allowed to finish.
+
+
+Concurrency with matrix
+-----------------------
+Matrix jobs create multiple job variations.
+Concurrency can use matrix values at the job level.
+
+Example:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22]
+    runs-on: ${{ matrix.os }}
+    concurrency:
+      group: test-${{ matrix.os }}-${{ matrix.node }}
+      cancel-in-progress: true
+    steps:
+      - run: echo "Testing Node ${{ matrix.node }} on ${{ matrix.os }}"
+
+Meaning:
+- Each OS and Node version gets a different group.
+- A ubuntu/node20 run does not block a windows/node22 run.
+
+Be careful:
+- If every matrix job uses the same fixed group, the matrix jobs run one at a
+  time.
+- That can be useful for a shared resource, but bad for test speed.
+
+
+Concurrency vs needs vs strategy.max-parallel
+---------------------------------------------
+These features solve different problems.
+
+needs:
+- Defines job dependency order.
+- Example: deploy waits for build.
+
+strategy.max-parallel:
+- Limits how many matrix jobs run at the same time within one workflow run.
+- Example: run only 2 matrix jobs at once.
+
+concurrency:
+- Prevents overlapping jobs or workflow runs that share the same group.
+- Works across workflow runs in the same repository.
+
+Example from matrix strategy:
+
+strategy:
+  max-parallel: 2
+  matrix:
+    os: [ubuntu-latest, windows-latest]
+    node: [20, 22]
+
+This limits matrix fan-out, but it does not stop a different workflow run from
+starting another matrix unless concurrency is also configured.
+
+
+Allowed expression contexts
+---------------------------
+For concurrency group expressions, common allowed contexts include:
+- github
+- inputs
+- vars
+- needs
+- strategy
+- matrix
+
+Example:
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+This is common with workflow_dispatch or reusable workflows where an environment
+is passed as an input.
+
+
+Important details for GH-200
+----------------------------
+Remember these points:
+
+1. Concurrency can be configured at workflow level or job level.
+2. Workflow-level concurrency controls the entire workflow run.
+3. Job-level concurrency controls only that job.
+4. The group value is the lock key.
+5. Only one running job/run is allowed per concurrency group.
+6. By default, only one pending job/run is kept in the group.
+7. cancel-in-progress: true cancels the currently running job/run in the group.
+8. cancel-in-progress: false lets the running job/run finish.
+9. Use github.workflow in the group name to avoid canceling other workflows by
+   accident.
+10. Concurrency group names are case-insensitive.
+11. Execution order is not guaranteed unless using queue behavior that explicitly
+    preserves pending runs.
+12. concurrency is different from needs and max-parallel.
+
+
+Exam-style examples
+-------------------
+Question:
+You want to prevent two production deployments from running at the same time,
+but you do not want to cancel a deployment that is already running.
+
+Answer:
+
+concurrency:
+  group: prod-deployment
+  cancel-in-progress: false
+
+
+Question:
+You want only the newest CI run for a branch to continue after multiple pushes.
+
+Answer:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+Question:
+You have two workflows in the same repository. You do not want one workflow to
+cancel another workflow on the same branch.
+
+Answer:
+Include github.workflow in the group name.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+Question:
+You have matrix jobs, but the external test service allows only one job per OS.
+
+Answer:
+Use matrix values in the group.
+
+concurrency:
+  group: external-service-${{ matrix.os }}
+  cancel-in-progress: false
+
+
+Simple mental model
+-------------------
+needs = job order inside a workflow.
+max-parallel = how many matrix copies run at once.
+concurrency = shared lock across workflow runs or jobs.
+
+Use cancel-in-progress: true for outdated work.
+Use cancel-in-progress: false for work that must complete safely.

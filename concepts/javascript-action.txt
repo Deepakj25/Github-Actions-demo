@@ -1,0 +1,25 @@
+// javascript Action
+
+Suppose many workflows need the same custom logic:
+
+Read some inputs
+→ call GitHub API / process data
+→ return an output
+
+You could write several shell steps repeatedly, but if the logic becomes more complex, you can package it as a JavaScript Action.
+
+Very simple structure:
+
+my-action/
+├── action.yml
+└── index.js
+
+action.yml describes the action, while index.js contains the actual JavaScript logic.
+
+Composite Action = mainly reuse workflow steps
+JavaScript Action = implement custom action logic in JavaScript
+
+JavaScript Action
+→ action.yml + JS file
+→ runs with Node runtime
+→ good for custom logic/API processing

@@ -1,0 +1,143 @@
+###### Workflow Starter Templates
+
+Workflow starter templates are prebuilt GitHub Actions workflow files.
+
+They are used to create new workflows quickly from the Actions tab instead of writing YAML from scratch.
+
+GitHub provides built-in templates for common cases like:
+CI
+deployment
+code scanning
+automation
+GitHub Pages
+
+
+###### Custom Organization Templates
+
+Organizations can create their own workflow templates.
+
+Use case:
+standard CI/CD workflows across many repositories
+approved security or deployment workflow patterns
+
+Custom templates must be stored in the organization's special repository:
+.github
+
+Required folder:
+workflow-templates
+
+Example:
+
+.github
+└── workflow-templates
+    ├── node-ci.yml
+    └── node-ci.properties.json
+
+
+###### Required Files
+
+Each starter template needs two files:
+
+1. workflow YAML file
+2. matching metadata file
+
+Example:
+
+node-ci.yml
+node-ci.properties.json
+
+The metadata file name must match the workflow file name and end with:
+.properties.json
+
+
+###### Metadata File
+
+Metadata controls how the template appears in the GitHub UI.
+
+Example:
+
+{
+  "name": "Node CI",
+  "description": "Build and test a Node.js project.",
+  "iconName": "octicon package",
+  "categories": ["JavaScript"],
+  "filePatterns": ["package.json$"]
+}
+
+Important fields:
+
+name
+→ display name
+
+description
+→ short explanation
+
+iconName
+→ icon shown in GitHub UI
+
+categories
+→ used for grouping and recommendations
+
+filePatterns
+→ decides when GitHub should suggest the template
+
+
+###### $default-branch
+
+$default-branch is a placeholder used inside starter templates.
+
+Example:
+
+on:
+  push:
+    branches: [ $default-branch ]
+
+When the workflow is created, GitHub replaces it with the repository's default branch.
+
+Example:
+main
+develop
+
+
+###### Availability
+
+Template availability depends on the visibility of the .github repository.
+
+Public .github
+→ available to public, internal, and private repositories
+
+Internal .github
+→ available to internal and private repositories
+
+Private .github
+→ available to private repositories
+
+
+###### Starter Template vs Reusable Workflow
+
+Starter template
+→ copied into a repository when creating a new workflow
+
+Reusable workflow
+→ called from another workflow using workflow_call
+
+Important:
+Updating a starter template does not update workflows that were already created from it.
+
+Template visibility follows .github repo visibility.
+
+#### repo visibility
+public   → all repo types
+internal → internal + private
+private  → private only
+
+
+###### GH-200 Key Points
+
+1. Starter templates help users create workflows quickly.
+2. GitHub has built-in starter templates.
+3. Organizations can create custom templates in a .github repository.
+4. Custom templates go inside workflow-templates.
+5. Each template needs a YAML file and matching .properties.json file.
+6. Use $default-branch so templates work across repositories.
+7. Starter templates are copied, not centrally executed.
