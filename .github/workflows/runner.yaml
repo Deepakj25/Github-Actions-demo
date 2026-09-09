@@ -1,24 +1,83 @@
 name: Runner Lab
 
+run-name: ${{ github.workflow }}-${{ github.run_number }}-${{ github.run_attempt }}
+
 on:
+  # Run this lab manually from the Actions tab.
   workflow_dispatch:
+    inputs:
+      runner-name:
+        description: GitHub-hosted runner image used by both jobs
+        required: true
+        default: ubuntu-latest
+        type: choice
+        options:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
 
 jobs:
   job-1:
-    runs-on: ubuntu-latest
+    name: Inspect Runner A
+    # runs-on selects a runner matching the chosen hosted-runner label.
+    runs-on: ${{ inputs.runner-name }}
 
     steps:
-      - name: Create file
+      - name: Display built-in runner environment variables
         run: |
-          echo "Created by Job 1" > demo.txt
+          echo "Runner name:         $RUNNER_NAME"
+          echo "Runner OS:           $RUNNER_OS"
+          echo "Architecture:        $RUNNER_ARCH"
+          echo "Runner environment:  $RUNNER_ENVIRONMENT"
+          echo "Temporary directory: $RUNNER_TEMP"
+          echo "Tool cache:          $RUNNER_TOOL_CACHE"
+          echo "Workspace:           $GITHUB_WORKSPACE"
+        shell: bash
 
-      - name: Read file in another step
-        run: cat demo.txt
+      - name: Compare context and environment variable forms
+        # OS_FROM_CONTEXT is a custom name; the value comes from runner context.
+        env:
+          OS_FROM_CONTEXT: ${{ runner.os }}
+        run: |
+          echo "Context inserted directly: ${{ runner.os }}"
+          echo "Context mapped to custom env: $OS_FROM_CONTEXT"
+          echo "Built-in runner env: $RUNNER_OS"
+        shell: bash
+
+      # GitHub evaluates this condition before sending the step to the runner.
+      - name: Linux-only step using the runner context
+        if: ${{ runner.os == 'Linux' }}
+        run: echo "This step runs because runner.os is Linux"
+        shell: bash
+
+      - name: Create files on Runner A
+        run: |
+          echo "Created in the workspace" > demo.txt
+          echo "Created in the temporary directory" > "$RUNNER_TEMP/temp-demo.txt"
+        shell: bash
+
+      # Steps in the same job share the runner filesystem.
+      - name: Read files in another step on Runner A
+        run: |
+          cat demo.txt
+          cat "$RUNNER_TEMP/temp-demo.txt"
+        shell: bash
 
   job-2:
+    # needs controls order only; it does not share Runner A with this job.
     needs: job-1
-    runs-on: ubuntu-latest
+    name: Verify Runner B isolation
+    # The same label does not mean the same hosted runner instance.
+    runs-on: ${{ inputs.runner-name }}
 
     steps:
-      - name: Try reading Job 1 file. #jobs runs in different runners, so this will fail
-        run: cat demo.txt.            #they share no file system, so the file created in job-1 is not available in job-2
+      # A new GitHub-hosted job starts with an isolated workspace and temp area.
+      # It cannot access files created by the previous job on Runner A.
+      - name: Confirm files from Runner A are absent
+        run: |
+          if [[ -f demo.txt || -f "$RUNNER_TEMP/temp-demo.txt" ]]; then
+            echo "Unexpected: a file from Runner A exists on Runner B"
+            exit 1
+          fi
+          echo "Expected: Runner B has a separate filesystem"
+        shell: bash
